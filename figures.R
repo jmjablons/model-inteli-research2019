@@ -19,7 +19,6 @@ require(ggbeeswarm)
 hero = "900110000199546" # champion from saccharin group
 hero = "900110000351935" # champion from water/control group
 
-
 # CUSTOM ------------------------------------------------------------------
 
 sem <- 
@@ -58,7 +57,6 @@ theme_publication <-
     ),
     complete = FALSE
   )
-
 
 # FIGURE 2 ----------------------------------------------------------------
 
@@ -116,10 +114,6 @@ theme_publication <-
 
 
 # FIGURE 3 ----------------------------------------------------------------
-
-(pChoices | pPreferenceLick | pBetterRatio) + 
-  plot_layout(ncol = 3, widths = c(1, 1, 1)) + 
-  plot_annotation(tag_levels = "A")
 
 #pChoices <- 
   dData %>%
@@ -252,13 +246,13 @@ theme_publication <-
 (pChoices | pPreferenceLick | pBetterRatio) + 
     plot_layout(ncol = 3, widths = c(1, 1, 1)) + 
     plot_annotation(tag_levels = "A")
-  
 
 # FIGURE 4 ----------------------------------------------------------------
 
 tLabel <- c(
   `0` = 'after lose', 
   `1` = 'after win')
+  
 tValues <- log(c(0.03, 1, 5, 60, 600))
 
 #pStayHero <-
@@ -351,10 +345,11 @@ tValues <- log(c(0.03, 1, 5, 60, 600))
   labs(y = 'interval [min]')+
   coord_flip()
   
-(pIntervalsHero | pIntervalsControl) /
-  (pStayHero | pStayControl) + 
 #for *Control  
 #    do the same, but change the value of 'hero' variable
+  
+(pIntervalsHero | pIntervalsControl) /
+  (pStayHero | pStayControl) + 
     plot_layout(ncol = 1, heights = c(4, 6)) + 
     plot_annotation(tag_levels = "A")
 
@@ -366,7 +361,7 @@ tValues <- log(c(0.03, 1, 5, 60, 600))
 pGlmOdds <-
   list(
     intercept = 
-      rGlm2 %>%
+      rGlm %>%
       filter(
         Predictor == 
           (.$Predictor %>% 
@@ -412,7 +407,7 @@ pGlmOdds <-
         values = rep("black",3)
       ),
     corner = 
-      rGlm2 %>%
+      rGlm %>%
       filter(
         Predictor == 
           (.$Predictor %>% 
@@ -458,7 +453,7 @@ pGlmOdds <-
         values = rep("black",3)
       ),
     interval = 
-      rGlm2 %>%
+      rGlm %>%
       filter(
         Predictor == 
           (.$Predictor %>% 
@@ -505,7 +500,7 @@ pGlmOdds <-
         values = rep("black",3)
       ),
     reward = 
-      rGlm2 %>%
+      rGlm %>%
       filter(
         Predictor == 
           (.$Predictor %>% 
@@ -556,3 +551,542 @@ pGlmOdds <-
     (pGlmOdds$interval | pGlmOdds$corner)) + 
   plot_layout() + 
   plot_annotation(tag_levels = "A")
+  
+
+# FIGURE 6 ----------------------------------------------------------------
+
+  tLimitBeta <- 10
+  
+  pOptimBasic <-
+    oBasic %>%
+    filter(beta <= tLimitBeta) %>%
+    ggplot(aes(alpha, beta, z = nll)) +
+    geom_raster(aes(fill = nll)) +
+    geom_contour(colour = 'black',
+                 binwidth = 200) +
+    theme_publication +
+    theme(legend.position = "bottom") +
+    scale_x_continuous(
+      breaks = c(0, 0.5, 1),
+      limits = c(0, 1),
+      expand = c(0, 0)
+    ) +
+    scale_y_continuous(
+      breaks = c(0, 2, 10, 20),
+      limits = c(0, NA),
+      expand = c(0, 0)
+    ) +
+    geom_point(data = filter(oBasic, min == T),
+               colour = "red",
+               shape = 8) +
+    scale_fill_gradient(
+      low = "white",
+      high = "black",
+      limits = c(
+        oTime %>%
+          filter(beta <= tLimitBeta) %>%
+          summarise(min(nll)) %>%
+          unlist(),
+        oBasic %>%
+          filter(beta <= tLimitBeta) %>%
+          summarise(max(nll)) %>%
+          unlist()
+      )
+    ) +
+    coord_flip()
+  
+  pOptimTime <-
+    oTime %>%
+    filter(
+      beta <= tLimitBeta) %>%
+    ggplot(
+      aes(alpha, beta, z = nll)) +
+    geom_raster(
+      aes(fill = nll)) +
+    geom_contour(
+      colour = 'black', 
+      binwidth = 200) +
+    theme_publication +
+    theme(legend.position = "bottom") +
+    scale_x_continuous(
+      breaks = c(0, 0.5, 1),
+      limits = c(0, 1),
+      expand = c(0, 0)
+    ) +
+    scale_y_continuous(
+      breaks = c(0, 2, 10, 20),
+      limits = c(0, NA),
+      expand = c(0, 0)
+    ) +
+    geom_point(
+      data = filter(oTime, min == T),
+      colour = "red",
+      shape = 8) +
+    scale_fill_gradient(
+      low = "white",
+      high = "black",
+      limits = c(
+        oTime %>% 
+          filter(beta <= tLimitBeta) %>% 
+          summarise(min(nll)) %>% 
+          unlist(),
+        oBasic %>% 
+          filter(beta <= tLimitBeta) %>% 
+          summarise(max(nll)) %>% 
+          unlist()
+      )
+    ) +
+    coord_flip()
+  
+  (pOptimBasic + pOptimTime) + 
+    plot_layout() + 
+    plot_annotation(
+      tag_levels = "A", 
+      caption = list("(A) basic (B) time "))
+  
+
+# FIGURE 7 ----------------------------------------------------------------
+
+  pAIC <-
+    rAll %>%
+    tidyr::gather(
+      'model', 'value',-tag,-substance) %>%
+    ggplot(
+      aes(x = model, y = value)) +
+    geom_boxplot(
+      outlier.colour = NA,
+      fill = NA,
+      size = 0.4) +
+    geom_quasirandom(
+      width = 0.2,
+      #method = "tukeyDense",
+      method = "quasirandom",
+      varwidth = TRUE,
+      colour = 'black',
+      size = 1
+    ) +
+    theme_publication +
+    scale_y_log10(
+      breaks = 
+        scales::trans_breaks(
+          "log10", 
+          function(x) 10 ^ x),
+      labels = 
+        scales::trans_format(
+          "log10", 
+          scales::math_format(10 ^ .x)),
+      limits = c(10 ^ 0, 10 ^ 4),
+      expand = c(0, 0)
+    ) +
+    labs(y = "AIC", x = element_blank()) +
+    theme(
+      panel.spacing = unit(2, "lines"),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      axis.ticks.y = element_line(linetype = 'dashed'),
+      axis.line.x = element_blank()
+    ) +
+    facet_wrap( ~ substance, ncol = 2)
+
+# FIGURE 8 ----------------------------------------------------------------
+
+  pTimeF <-
+    list(
+      lod = mTimeOptimised %>%
+        select(tag, par.lod, substance) %>%
+        filter(tag %in% tAnimals) %>%
+        tidyr::gather(parameter, value,-tag,-substance) %>%
+        ggplot(aes(x = substance, y = value)) +
+        scale_y_continuous(limits = c(0, 2), expand = c(0, 0)) +
+        facet_wrap( ~ parameter) +
+        geom_boxplot(outlier.colour = NA) +
+        geom_quasirandom(
+          width = 0.2,
+          method = "quasirandom",
+          varwidth = TRUE
+        ) +
+        theme_publication +
+        theme(
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_blank()
+        ),
+      #
+      alpha = mTimeOptimised %>%
+        select(tag, par.alpha, substance) %>%
+        filter(tag %in% tAnimals) %>%
+        tidyr::gather(parameter, value,-tag,-substance) %>%
+        ggplot(aes(x = substance, y = value)) +
+        scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+        facet_wrap( ~ parameter) +
+        geom_boxplot(outlier.colour = NA) +
+        geom_quasirandom(
+          width = 0.2,
+          method = "quasirandom",
+          varwidth = TRUE
+        ) +
+        theme_publication +
+        theme(
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_blank()
+        ),
+      #
+      beta = mTimeOptimised %>%
+        select(tag, par.beta, substance) %>%
+        filter(tag %in% tAnimals) %>%
+        tidyr::gather(parameter, value,-tag,-substance) %>%
+        ggplot(aes(x = substance, y = value)) +
+        scale_y_continuous(
+          limits = c(0, 50),
+          breaks = c(0, 5, 15, 50),
+          expand = c(0, 0)
+        ) +
+        facet_wrap( ~ parameter) +
+        geom_boxplot(outlier.colour = NA) +
+        geom_quasirandom(
+          width = 0.2,
+          method = "quasirandom",
+          varwidth = TRUE
+        ) +
+        theme_publication +
+        theme(
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_blank()
+        )
+    )
+  
+  pTimeC <-
+    list(
+      lod = rGlm %>%
+        filter(Predictor == 'IntervalAfter') %>%
+        mutate(
+          tag = Tag,
+          estimate = Estimate,
+          substance = Substance
+        ) %>%
+        filter(tag %in% tAnimals) %>%
+        select(tag, estimate, substance) %>%
+        tidyr::gather(parameter, value,-tag,-substance) %>%
+        ggplot(aes(x = substance, y = value)) +
+        scale_y_continuous(
+          limits = c(-.003, .009),
+          breaks = c(-0.003, 0, .003, .009),
+          expand = c(0, 0)
+        ) +
+        facet_wrap( ~ parameter) +
+        geom_boxplot(outlier.colour = NA) +
+        geom_quasirandom(
+          width = 0.2,
+          method = "quasirandom",
+          varwidth = TRUE
+        ) +
+        theme_publication +
+        theme(
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_blank()
+        ),
+      alpha = mTime %>%
+        select(tag, par.alpha, substance) %>%
+        filter(tag %in% tAnimals) %>%
+        tidyr::gather(parameter, value,-tag,-substance) %>%
+        ggplot(aes(x = substance, y = value)) +
+        scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+        facet_wrap( ~ parameter) +
+        geom_boxplot(outlier.colour = NA) +
+        geom_quasirandom(
+          width = 0.2,
+          method = "quasirandom",
+          varwidth = TRUE
+        ) +
+        theme_publication +
+        theme(
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_blank()
+        ),
+      beta = mTime %>%
+        select(tag, par.beta, substance) %>%
+        filter(tag %in% tAnimals) %>%
+        tidyr::gather(parameter, value,-tag,-substance) %>%
+        ggplot(aes(x = substance, y = value)) +
+        scale_y_continuous(
+          limits = c(0, 50),
+          breaks = c(0, 5, 15, 50),
+          expand = c(0, 0)
+        ) +
+        facet_wrap( ~ parameter) +
+        geom_boxplot(outlier.colour = NA) +
+        geom_quasirandom(
+          width = 0.2,
+          method = "quasirandom",
+          varwidth = TRUE
+        ) +
+        theme_publication +
+        theme(
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_blank()
+        )
+    )
+  
+  pDecay <-
+    list(
+      alpha = mDecay %>%
+        select(tag, par.alpha, substance) %>%
+        filter(tag %in% tAnimals) %>%
+        tidyr::gather(parameter, value, -tag, -substance) %>%
+        ggplot(aes(x = substance, y = value)) +
+        facet_wrap(~ parameter) +
+        geom_boxplot(outlier.colour = NA) +
+        geom_quasirandom(
+          width = 0.2,
+          method = "quasirandom",
+          varwidth = TRUE
+        ) +
+        scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+        theme_publication +
+        theme(
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_blank()
+        ),
+      beta = mDecay %>%
+        select(tag, par.beta, substance) %>%
+        filter(tag %in% tAnimals) %>%
+        tidyr::gather(parameter, value, -tag, -substance) %>%
+        ggplot(aes(x = substance, y = value)) +
+        facet_wrap(~ parameter) +
+        geom_boxplot(outlier.colour = NA) +
+        geom_quasirandom(
+          width = 0.2,
+          method = "quasirandom",
+          varwidth = TRUE
+        ) +
+        scale_y_continuous(
+          limits = c(0, 50),
+          breaks = c(0, 5, 15, 50),
+          expand = c(0, 0)
+        ) +
+        theme_publication +
+        theme(
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_blank()
+        ),
+      storage = mDecay %>%
+        select(tag, par.storage, substance) %>%
+        filter(tag %in% tAnimals) %>%
+        tidyr::gather(parameter, value, -tag, -substance) %>%
+        ggplot(aes(x = substance, y = value)) +
+        facet_wrap(~ parameter) +
+        geom_boxplot(outlier.colour = NA) +
+        geom_quasirandom(
+          width = 0.3,
+          method = "quasirandom",
+          varwidth = TRUE
+        ) +
+        scale_y_continuous(
+          limits = c(0, 0.3),
+          breaks = c(0, .1, .3),
+          expand = c(0, 0)
+        ) +
+        theme_publication +
+        theme(
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_blank()
+        )
+    )
+  
+  pBasic <- list(
+    alpha = mBasic %>%
+      select(tag, par.alpha, substance) %>%
+      filter(tag %in% tAnimals) %>%
+      tidyr::gather(parameter, value, -tag, -substance) %>%
+      ggplot(aes(x = substance, y = value)) +
+      facet_wrap(~ parameter) +
+      geom_boxplot(outlier.colour = NA) +
+      geom_quasirandom(
+        width = 0.2,
+        method = "quasirandom",
+        varwidth = TRUE
+      ) +
+      scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+      theme_publication +
+      theme(
+        panel.spacing = unit(2, "lines"),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_blank()
+      ),
+    beta = mBasic %>%
+      select(tag, par.beta, substance) %>%
+      filter(tag %in% tAnimals) %>%
+      tidyr::gather(parameter, value, -tag, -substance) %>%
+      ggplot(aes(x = substance, y = value)) +
+      facet_wrap(~ parameter) +
+      geom_boxplot(outlier.colour = NA) +
+      geom_quasirandom(
+        width = 0.2,
+        method = "quasirandom",
+        varwidth = TRUE
+      ) +
+      scale_y_continuous(
+        limits = c(0, 50),
+        breaks = c(0, 5, 15, 50),
+        expand = c(0, 0)
+      ) +
+      theme_publication +
+      theme(
+        panel.spacing = unit(2, "lines"),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_blank()
+      )
+  )
+  
+  pTimeFadd <-
+    mTimeOptimised %>%
+    select(tag, par.beta, substance) %>%
+    filter(tag %in% tAnimals) %>%
+    tidyr::gather(parameter, value,-tag,-substance) %>%
+    ggplot(aes(x = substance, y = value)) +
+    scale_y_continuous(limits = c(0, 1.5),
+                       #breaks = c(0, 5, 15, 50),
+                       expand = c(0, 0)) +
+    facet_wrap( ~ parameter) +
+    geom_boxplot(outlier.colour = NA) +
+    geom_quasirandom(
+      width = 0.2,
+      method = "quasirandom",
+      varwidth = TRUE,
+      size = .4
+    ) +
+    theme_publication +
+    theme(
+      panel.spacing = unit(2, "lines"),
+      #axis.text = element_text(angle = 45, hjust = 1),
+      axis.ticks.x = element_blank(),
+      axis.line.x = element_blank(),
+      axis.text.x = element_blank(),
+      axis.title = element_blank(),
+      axis.title.x = element_blank()
+    )
+  
+  pRandomTimeOptimised <-
+    list(
+      lod = mRandomTimeOptimisedLine %>%
+        select(tag, par, substance) %>%
+        filter(tag %in% tAnimals) %>%
+        tidyr::gather(parameter, value, -tag, -substance) %>%
+        ggplot(aes(x = substance, y = value)) +
+        facet_wrap(~ parameter) +
+        geom_boxplot(outlier.colour = NA) +
+        geom_quasirandom(
+          width = 0.2,
+          method = "quasirandom",
+          varwidth = TRUE
+        ) +
+        scale_y_continuous(limits = c(0, 2), expand = c(0, 0)) +
+        theme_publication +
+        theme(
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_blank()
+        )
+    )
+  
+  pRandomTimeOptimisedLine <-
+    list(
+      lod = mRandomTimeOptimisedLine %>%
+        select(tag, par, substance) %>%
+        filter(tag %in% tAnimals) %>%
+        tidyr::gather(parameter, value, -tag, -substance) %>%
+        ggplot(aes(x = substance, y = value)) +
+        facet_wrap(~ parameter) +
+        geom_boxplot(outlier.colour = NA) +
+        geom_quasirandom(
+          width = 0.2,
+          method = "quasirandom",
+          varwidth = TRUE
+        ) +
+        scale_y_continuous(limits = c(0, 2), expand = c(0, 0)) +
+        theme_publication +
+        theme(
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_blank()
+        )
+    )
+  
+# plot all the graphs  
+  ((pBasic$alpha | pBasic$beta | pRandomTimeOptimisedLine$lod) /
+      (pTimeC$alpha | pTimeC$beta | pTimeC$lod) /
+      (pTimeF$alpha | pTimeF$beta | pTimeF$lod) /
+      (pDecay$alpha | pDecay$beta | pDecay$storage)) +
+    plot_layout(nrow = 4) +
+    plot_annotation(
+      tag_levels = "A",
+      caption = "by rows: (1) model basic (C) random + time optimised\n
+      (2) time with LOD from regression \n
+      (3) time without constrain on lod \n
+      (4) decay
+      \n ANIMALS CHOSEN IF PREDICTOR REWARD (GLM) SIGNIFICANT"
+    ) &
+    theme(axis.title.x = element_blank(), 
+          axis.ticks.x = element_blank())
+  
+pTimeFadd
+  
+# ADDS --------------------------------------------------------------------
+
+#as posted on stackoverflow
+#   https://kutt.it/huJptV
+# asinh_trans <- function(){
+#   trans_new(
+#     name = 'asinh', 
+#     transform = function(x) asinh(x), 
+#     inverse = function(x) sinh(x))
+# }
+# 
+  # pDelta <- 
+  #   rDelta %>%
+  #   merge(
+  #     iAnimals %>% select(tag, exp)) %>%
+  #   tidyr::gather(
+  #     'model','value', -tag, -substance, -exp)%>%
+  #   ggplot(
+  #     aes(x = model, y = value))+
+  #   geom_line(
+  #     aes(group = tag), alpha = 0.5)+
+  #   geom_hline( 
+  #     yintercept = 0, colour = "red", linetype = "dashed")+
+  #   geom_hline( 
+  #     yintercept = -50, linetype = "dashed")+
+  #   scale_y_continuous(
+  #     trans = 'asinh', 
+  #     #limits = c(-200, 2000), 
+  #     breaks = c(-2000, -50, -2, 2, 50, 2000), 
+  #     expand = c(0,1))+
+  #   theme_publication+
+  #   facet_wrap(substance ~ exp, ncol = 1)+
+  #   theme(
+  #     panel.spacing = unit(1, "lines"),
+  #     axis.text.x = element_text(angle = 45, hjust = 1),
+  #     axis.ticks.y = element_line(linetype = 'dashed'),
+  #     axis.line.x = element_blank())+
+  #   labs(y = 'delta AIC')  
+  

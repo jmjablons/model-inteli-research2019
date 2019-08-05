@@ -6,6 +6,7 @@ modelNLL <-
   nll = 0
   if (par[1] < 0 | par[1] > 1 |
       par[2] < 0 | par[2] > 50) {
+    # limitations
     nll = Inf
   } else {
     Q = c(0, 0)
@@ -25,13 +26,18 @@ modelNLL <-
           (sum(exp(par[2] * Q[1]), exp(par[2] * Q[2])))
         nll = -log(P[s]) + nll
         pe = r - Q[s]
-        Q[s] = Q[s] + (par[1] * pe) #theres the core equation
+        Q[s] = Q[s] + (par[1] * pe) 
+        #theres the core equation
       } 
     }
   }
   nll
 }
 
+# Set initial values
+#   note: 
+#     number of optimisation starting 
+#     points is length(tInitials[[1]])
 tInitials <- 
   expand.grid(
     alpha = seq(0.05, 1, by = 0.05),
@@ -40,7 +46,6 @@ tInitials <-
 
 mBasic <-
   getModelMice(tInitials) 
-#go make a cup of tea 
 #it should take < 5min
 
 mBasic = 
