@@ -95,12 +95,13 @@ for(temp in iAnimals$Tag){
       rGlm,
       modelStay(
         A = (dChoices %>% 
-               mutate(RewardDoor = as.factor(RewardDoor))
+               mutate(
+                 RewardDoor = 
+                   as.factor(RewardDoor))
              ), mouse = temp)
       )
 }
 
-# add animal info
 rGlm = 
   merge(rGlm, iAnimals, 
         by = 'Tag', all.x = TRUE) %>%

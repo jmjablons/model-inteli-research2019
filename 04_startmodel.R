@@ -2,6 +2,13 @@
 # DEPENDENCIES ------------------------------------------------------------
 
 require(dplyr)
+require(tidyr)
+
+#for plots:
+require(ggplot2)
+require(patchwork)
+require(latex2exp)
+require(scales)
 
 # METADATA ----------------------------------------------------------------
 
@@ -16,7 +23,7 @@ calculateAIC <-
     2 * NLL + 2 * n.parameters
   }
 
-simple <- 
+simple <- #(unique()?)
   function(a, na.omit = TRUE) {
     if (na.omit == TRUE) {
       a = na.omit(a)
@@ -26,6 +33,7 @@ simple <-
     }
   }
 
+#for #parameters > 1
 optimalizeParameters <- 
   function(A, list.parameters) {
     optim.results <- list()
@@ -79,4 +87,29 @@ getModelMice <-
     data.frame(t(
       sapply(model, function(x) {unlist(x)}))
       )
+  }
+
+# for one parameter
+# no function overloading in R... :/
+# note: no loop for animals inside
+optimalizeParameters_ <-
+  function(A, list.parameters){
+    out = list(
+      tag = A$Tag[1], 
+      par = 0, 
+      value = Inf, 
+      maxPar = NA)
+    for(i in list.parameters){
+      value = 
+        modelNLL(
+          par = i, A = A)
+      # takes the function of general env
+      out$maxPar = i
+      if(is.finite(value) & 
+         value < out$value){
+        out$par = i
+        out$value = value
+      }
+    }
+    out
   }

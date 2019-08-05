@@ -29,6 +29,7 @@
 # DEPENDENCIES ------------------------------------------------------------
 
 require(dplyr)
+require(lubridate)
 #require(readr)
 #require(tidyr)
 
@@ -59,6 +60,13 @@ dData <-
     ), 
     locale = locale(decimal_mark = ","), 
     trim_ws = TRUE)
+
+# METADATA ----------------------------------------------------------------
+
+iAnimals <-
+  dData %>%
+  group_by(Tag, Strain, Genotype, Substance, Exp) %>%
+  summarise()
 
 # CUSTOM FUNCTIONS --------------------------------------------------------
 
@@ -184,3 +192,55 @@ informPhases(
 # then check whatever, as pleased
 #
 #iExp[[1]]$listSubstance
+
+
+# SPLIT DATA --------------------------------------------------------------
+
+# get only choices
+  
+dChoices <- 
+  dData %>%
+  filter(RewardProbability > 0, 
+         VisitDuration > 2) %>%
+  arrange(Tag, StartDateTime) %>%
+  group_by(Tag) %>%
+  mutate(
+    Stay = ifelse(Corner == lead(Corner), 1, 0),
+    IntervalBefore = 
+       as.numeric(
+         StartDateTime - lag(EndDateTime),
+         units = 'mins'), 
+    IntervalAfter = 
+       -as.numeric(
+         EndDateTime - lead(StartDateTime),
+         units = 'mins')
+    ) %>%
+  ungroup() %>%
+  arrange(Tag, StartDateTime) %>%
+  ungroup()
+
+# data for Q-learning
+  
+dModel <-
+  dData %>%
+  filter(Info == 'reversals',
+         RewardProbability > 0, 
+         VisitDuration > 2,
+         Strain == 'C57BL6N') %>%
+  arrange(Tag, StartDateTime) %>%
+  group_by(Tag) %>%
+  mutate(
+    Stay = ifelse(
+      Corner == lead(Corner), 
+      1, 0),
+    IntervalBefore = 
+      as.numeric(
+        StartDateTime - lag(EndDateTime), 
+        units = 'mins'),
+    IntervalAfter = 
+      -as.numeric(
+        EndDateTime - lead(StartDateTime), 
+        units = 'mins')) %>%
+  ungroup() %>%
+  arrange(Tag, StartDateTime) %>%
+  ungroup() 
