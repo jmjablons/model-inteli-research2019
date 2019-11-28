@@ -647,8 +647,9 @@ pGlmOdds <-
 
 # FIGURE 7 ----------------------------------------------------------------
 
-  pAIC <-
-    rAll %>%
+  #pAIC <-
+    newAll %>%
+    mutate(substance = Substance, Substance = NULL) %>%
     tidyr::gather(
       'model', 'value',-tag,-substance) %>%
     ggplot(

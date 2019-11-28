@@ -56,12 +56,10 @@ tInitials <-
 mDecay <- 
   getModelMice(tInitials)
 
-mDecay = merge(mDecay, iAnimals, all.x = TRUE) %>% 
-  as_tibble()
+mDecay = merge(mDecay, iAnimals %>% mutate(tag = Tag), all.x = TRUE)
 
 mDecay$AIC <-
   apply(mDecay, 1, function(x) {
     calculateAIC(
-      n.parameters = length(tInitials),
-      NLL = as.numeric(x[(length(tInitials) + 2)]))
-  })
+      n.parameters = length(3),
+      NLL = as.numeric(x[5]))})

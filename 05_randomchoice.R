@@ -1,7 +1,7 @@
 # probability is always 0.5
 
 mZero = 
-  data.frame(tag = iAnimals$tag)
+  data.frame(tag = iAnimals$Tag)
 
 mZero$NLL <- 
   apply(mZero, 1, function(x) {
@@ -23,5 +23,7 @@ mZero$N <-
 
 mZero = 
   merge(
-    mZero, iAnimals, all.x = TRUE) %>% 
+    mZero, iAnimals %>% 
+      ungroup() %>%
+      mutate(tag = Tag, Tag = NULL), all.x = TRUE) %>% 
   as_tibble()
