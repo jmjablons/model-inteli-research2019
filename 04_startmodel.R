@@ -85,7 +85,7 @@ getModelMice <-
     }
     close(progressbar)
     data.frame(t(
-      sapply(model, function(x) {unlist(x)}))
+      sapply(model, function(x) {unlist(x)})), stringsAsFactors = F
       )
   }
 
