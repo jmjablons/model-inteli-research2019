@@ -326,7 +326,7 @@ modelNLL <-
     nll = 0
     if (par[1] < 0 | par[1] > 1 |
         par[2] < 0 | par[2] > 50 |
-        par[3] < 0 | par[3] > 100) {
+        par[3] > 0 | par[3] < 1) {
       nll = Inf
     } else {
       temp = nrow(A)
@@ -345,22 +345,24 @@ modelNLL <-
         s = sides[i]
         w = previous[i]
         t = intervals[i]
-        if (is.finite(s) & is.finite(r)) { 
+        if (is.finite(s) & is.finite(r) & is.finite(w) & is.finite(t)) { 
           pe = r - Q[s]   
           P[1] = exp(par[2] * Q[1]) / 
             (sum(exp(par[2] * Q)))
           P[2] = exp(par[2] * Q[2]) / 
             (sum(exp(par[2] * Q)))
           b0 = log(P[w] / (1 - P[w]))
+          print(P[w])
           P[w] = exp(b0 + par[3] * t) / 
             (1 + exp(b0 + par[3] * t))
-          if(P[1] < .001){P = c(.001, .999)}
-          if(P[1] > .999){P = c(.999, .001)}
-          if(P[2] < .001){P = c(.999, .001)}
-          if(P[2] > .999){P = c(.001, .999)}
-          #print(c(b0, P))
-          #if(P[s] < .001){P[s] = .001}
-          #if(P[s] > .999){P[s] = .999}
+          P[-w] = 1 - P[w]
+          print(c(P[w], b0, t))
+          # if(P[1] < .001){P = c(.001, .999)}
+          # if(P[1] > .999){P = c(.999, .001)}
+          # if(P[2] < .001){P = c(.999, .001)}
+          # if(P[2] > .999){P = c(.001, .999)}
+          if(P[s] < .001){P[s] = .001}
+          if(P[s] > .999){P[s] = .999}
           Q[s] = Q[s] + (par[1] * pe)
           nll = -log(P[s]) + nll}}}
     nll}
@@ -370,7 +372,7 @@ modelNLL <-
     expand.grid(
       alpha = seq(0.05, 1, by = 0.05),
       beta = seq(0.25, 15, by = 0.25),
-      iota = seq(0.05, 1, by = 0.05)) %>% 
+      iota = seq(0.01, 1, by = 0.01)) %>% 
     as.list()
   model[[name]] <-
     getModelMice(initial) %>%
@@ -386,3 +388,37 @@ model[[name]] <-
       summarise(n = n()) %>%
   mutate(name = name,
          aic = calculateAIC(0, n * -log(0.5)))}
+
+
+# analysis ----------------------------------------------------------------
+
+aictidy <- 
+  model %>%
+  purrr::map(~select(., name, aic, tag)) %>%
+  bind_rows() %>%
+  mutate(delta = aic - .$aic[.$tag == tag & .$name == "basic"]) %>%
+  merge(iAnimals, all.x = T) %>%
+  as_tibble()
+
+aictidy %>%
+  ggplot(aes(x = name, y = delta)) +
+  geom_hline(yintercept = 0)+
+  geom_boxplot(
+    outlier.colour = NA,
+    fill = NA,
+    size = 0.4) +
+  geom_quasirandom(
+    width = 0.2,
+    method = "quasirandom",
+    varwidth = TRUE,
+    colour = 'black',
+    size = 1) +
+  theme_publication +
+  labs(y = "dAIC", x = element_blank()) +
+  theme(
+    panel.spacing = unit(2, "lines"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.ticks.y = element_line(linetype = 'dashed'),
+    axis.line.x = element_blank()) +
+  facet_wrap( ~ substance, ncol = 2)
+  
