@@ -319,14 +319,74 @@ modelNLL <-
            aic = calculateAIC(
              length(initial), as.numeric(value)))}
 
-# reproval ----------------------------------------------------------------
+
+# decay hybrid ------------------------------------------------------------
+
 modelNLL <- 
   function(par, A) {
     A = A[with(A, order(StartDateTime)), ]
     nll = 0
     if (par[1] < 0 | par[1] > 1 |
         par[2] < 0 | par[2] > 50 |
-        par[3] > 0 | par[3] < 1) {
+        par[3] < 0 | par[3] > 1 |
+        par[4] < 0 | par[4] > 1) {
+      nll = Inf
+    } else {
+      temp = nrow(A)
+      tempQ = c()
+      Q = c(0, 0)
+      date = rep(A$StartDateTime[1], 2)
+      t = c(0, 0)
+      P <- vector()
+      r = c(4, 4)
+      for (i in seq_along(1:temp)) {
+        reward = A$RewardDoor[i]
+        s = ceiling(A$Corner[i] / 2)
+        t[1] = as.numeric(
+          difftime(A$EndDateTime[(i)], 
+                   date[1], units = 'mins'))
+        t[2] = as.numeric(
+          difftime(A$EndDateTime[(i)], 
+                   date[2], units = 'mins'))
+        date[s] = A$StartDateTime[i]
+        if (is.finite(s) & is.finite(r[1]) & is.finite(r[2])) {
+            Q[s] = exp( -(t[s]) * par[r[s]] ) * Q[s]
+            tempQ = exp( -(t[-s]) * par[r[-s]] ) * Q[-s]}
+        r[s] = ifelse(reward == 1, 3, 4)
+          P[s] = exp(par[2] * Q[s]) / 
+            (sum(exp(par[2] * Q[s]), 
+                 exp(par[2] * tempQ)))
+          if(P[s] < .001){P[s] = .001}
+          if(P[s] > .999){P[s] = .999}
+          nll = -log(P[s]) + nll
+          pe = reward - Q[s]
+          Q[s] = Q[s] + (par[1] * pe)
+          }}
+    nll}
+
+{name = "decay+"
+  initial <-
+    expand.grid(
+      alpha = seq(0.05, 1, by = 0.05),
+      beta = seq(0.25, 15, by = 0.25),
+      storage.pos = seq(0.05, 1, by = 0.05),
+      storage.neg = seq(0.05, 1, by = 0.05)) %>%
+    as.list()
+  model[[name]] <-
+    getModelMice(initial) %>%
+    mutate(name = name,
+           aic = calculateAIC(
+             length(initial), as.numeric(value)))}
+
+# reproval ----------------------------------------------------------------
+modelNLL <- 
+  function(par, A) {
+    tryCatch({
+    A = A[with(A, order(StartDateTime)), ]
+    nll = 0
+    if (par[1] < 0 | par[1] > 1 |
+        par[2] < 0 | par[2] > 50 |
+        par[3] < 0 | par[3] > 1) {
       nll = Inf
     } else {
       temp = nrow(A)
@@ -345,34 +405,29 @@ modelNLL <-
         s = sides[i]
         w = previous[i]
         t = intervals[i]
-        if (is.finite(s) & is.finite(r) & is.finite(w) & is.finite(t)) { 
+        if (is.finite(s) & is.finite(r)) { 
           pe = r - Q[s]   
           P[1] = exp(par[2] * Q[1]) / 
             (sum(exp(par[2] * Q)))
           P[2] = exp(par[2] * Q[2]) / 
             (sum(exp(par[2] * Q)))
           b0 = log(P[w] / (1 - P[w]))
-          print(P[w])
+          if(t > 120) t = 120
           P[w] = exp(b0 + par[3] * t) / 
             (1 + exp(b0 + par[3] * t))
           P[-w] = 1 - P[w]
-          print(c(P[w], b0, t))
-          # if(P[1] < .001){P = c(.001, .999)}
-          # if(P[1] > .999){P = c(.999, .001)}
-          # if(P[2] < .001){P = c(.999, .001)}
-          # if(P[2] > .999){P = c(.001, .999)}
           if(P[s] < .001){P[s] = .001}
           if(P[s] > .999){P[s] = .999}
           Q[s] = Q[s] + (par[1] * pe)
           nll = -log(P[s]) + nll}}}
-    nll}
+    return(nll)})}
 
 {name = "reproval"
   initial <-
     expand.grid(
       alpha = seq(0.05, 1, by = 0.05),
       beta = seq(0.25, 15, by = 0.25),
-      iota = seq(0.01, 1, by = 0.01)) %>% 
+      iota = seq(0.05, 1, by = 0.05)) %>% 
     as.list()
   model[[name]] <-
     getModelMice(initial) %>%
