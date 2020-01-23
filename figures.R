@@ -19,6 +19,9 @@ require(ggbeeswarm)
 hero = "900110000199546" # champion from saccharin group
 hero = "900110000351935" # champion from water/control group
 
+# if only given animals wanted
+#   then `{r} dplyr::filter(tag %in% manimal$tag)`
+
 # CUSTOM ------------------------------------------------------------------
 
 sem <- 

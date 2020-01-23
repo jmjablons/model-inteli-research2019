@@ -3,7 +3,6 @@ library(dplyr)
 
 # d1, d3 - version 2 plus; d2, d4 - version 1 star
 # variable ----------------------------------------------------------------
-
 scheme <- list()
 
 # d A ---------------------------------------------------------------------
@@ -47,7 +46,7 @@ d2 <-
     list.files(
       path = choose.dir(),
       full.names = T), 
-    version = 2) %>%
+    version = 1) %>%
   purrr::keep(~ !is.null(.)) %>%
   dplyr::bind_rows()
 
@@ -79,7 +78,7 @@ d3 <-
     list.files(
       path = choose.dir(),
       full.names = T), 
-    version = 1) %>%
+    version = 2) %>%
   purrr::keep(~ !is.null(.)) %>%
   dplyr::bind_rows()
 
@@ -108,7 +107,7 @@ d3 = d3 %>%
 # Red - 90% rp
 # Yellow - 30% rp
 # White - 0% rp
-# Mistake: Not all data availale in raw form
+# Mistake: Not all data available in raw form
 # Mistake: water corners during welcome denoted as "Green"
 
 d4 <- 
@@ -134,7 +133,8 @@ d4 <- (function(A, pattern = "cornercondition", replacement = "condition"){
                       paste0("Cage ", 
                              deviceid), deviceid), 
     corner = as.character(corner), 
-    condition = as.character(condition), tag = as.character(tag), 
+    condition = as.character(condition), 
+    tag = as.character(tag), 
     dooropened = as.character(dooropened)) %>%
   icager::contingencise(
     metadata = c(Green = 1.0, Red = 0.9, Yellow = 0.3, White = 0.0))
@@ -146,11 +146,12 @@ scheme$D <- d4 %>% printscheme()
 
 #icager::schematize(d4) %>% with(., {table(contingency, info)})
 temp <- tibble(
-  contingency = 0:27,
-  info = c("welcome", rep("adaptation", 10), rep("reversal", 17))) %>%
+  contingency = 0:28,
+  info = c("welcome", rep("adaptation", 10), rep("reversal", 17), "finish")) %>%
   merge(select(scheme$D, contingency, label), all.x = T)
 
 d4 = d4 %>% 
   dplyr::left_join(temp, all.x = T) %>% 
   dplyr::mutate(exp = "D", soft = "star") %>%
+  dplyr::mutate(temperature = NA, illumination = NA) %>%
   dplyr::as_tibble()

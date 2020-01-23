@@ -13,6 +13,11 @@
 
 #TODO (get rid of all the loop - KISS)
 
+# TODO --------------------------------------------------------------------
+
+# if only given animals wanted
+#   then `{r} dplyr::filter(tag %in% manimal$tag)`
+
 # SUBSTANCE PREFERENCE ----------------------------------------------------
 
 # Take data from
