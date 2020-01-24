@@ -367,9 +367,9 @@ model <- function(par, a) {
 
 # old decay ---------------------------------------------------------------
 
-modelNLL <- 
+model <- 
   function(par, a) {
-    a = a[with(a, order(StartDateTime)), ]
+    a = a[with(a, order(start)), ]
     nll = 0
     if (par[1] < 0 | par[1] > 1 |
         par[2] < 0 | par[2] > 50 |
@@ -476,27 +476,27 @@ aictidy <- rmodel %>%
   purrr::map(~select(., name, aic, tag)) %>%
   bind_rows() %>%
   mutate(delta = aic - .$aic[.$tag == tag & .$name == "basic"]) %>%
-  merge(iAnimals, all.x = T) %>%
+  merge(manimal, all.x = T) %>%
   as_tibble()
 
-# aictidy %>%
-#   ggplot(aes(x = name, y = delta)) +
-#   geom_hline(yintercept = 0)+
-#   geom_boxplot(
-#     outlier.colour = NA,
-#     fill = NA,
-#     size = 0.4) +
-#   geom_quasirandom(
-#     width = 0.2,
-#     method = "quasirandom",
-#     varwidth = TRUE,
-#     colour = 'black',
-#     size = 1) +
-#   theme_publication +
-#   labs(y = "dAIC", x = element_blank()) +
-#   theme(
-#     panel.spacing = unit(2, "lines"),
-#     axis.text.x = element_text(angle = 45, hjust = 1),
-#     axis.ticks.y = element_line(linetype = 'dashed'),
-#     axis.line.x = element_blank()) +
-#   facet_wrap( ~ substance, ncol = 2)
+aictidy %>%
+  ggplot(aes(x = name, y = delta)) +
+  geom_hline(yintercept = 0)+
+  geom_boxplot(
+    outlier.colour = NA,
+    fill = NA,
+    size = 0.4) +
+  geom_quasirandom(
+    width = 0.2,
+    method = "quasirandom",
+    varwidth = TRUE,
+    colour = 'black',
+    size = 1) +
+  theme_publication +
+  labs(y = "dAIC", x = element_blank()) +
+  theme(
+    panel.spacing = unit(2, "lines"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.ticks.y = element_line(linetype = 'dashed'),
+    axis.line.x = element_blank()) +
+  facet_wrap( ~ substance, ncol = 2)
