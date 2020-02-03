@@ -31,12 +31,11 @@ model <-
         Q[s] = Q[s] + (par[1] * pe)}}}
   nll}
 
-{name = "basic"
-  initial <- expand.grid(
+{initial <- expand.grid(
       alpha = seq(0.05, 1, by = 0.05),
       beta = seq(0.25, 15, by = 0.25)) %>%
     as.list()
-  rmodel[[name]] <- getModelMice(list.parameters = initial, A = dmodel) %>%
+  rmodel[[(name = "basic")]] <- getModelMice(list.parameters = initial, A = dmodel) %>%
     mutate(name = name, aic = calculateAIC(length(initial), as.numeric(value)))}
 
 # dual --------------------------------------------------------------------
@@ -500,3 +499,21 @@ aictidy %>%
     axis.ticks.y = element_line(linetype = 'dashed'),
     axis.line.x = element_blank()) +
   facet_wrap( ~ substance, ncol = 2)
+
+
+# parameters --------------------------------------------------------------
+
+rmodel$`decay+` %>%
+  select(tag, par.alpha, par.beta, par.storage.pos, par.storage.neg, par.storage.neutral) %>%
+  tidyr::gather(par, value, -tag) %>%
+  left_join(manimal, by = "tag") %>%
+  ggplot(aes(x = par, y = as.numeric(value), fill = substance)) +
+  geom_boxplot()
+
+rmodel$hybrid %>%
+  select(tag, par.alpha.pos, par.beta, par.alpha.neg) %>%
+  tidyr::gather(par, value, -tag) %>%
+  left_join(manimal, by = "tag") %>%
+  ggplot(aes(x = par, y = as.numeric(value), fill = substance)) +
+  geom_boxplot()+
+  facet_wrap(~par, scales = "free")
