@@ -1,0 +1,74 @@
+This is hBayesDM version 0.7.2
+
+
+
+Model name  = bandit2arm_delta
+Data file   = ~/phDComputations/model-inteli-research2019/dataset_model_bayesian_alcohol.txt
+
+Details:
+ # of chains                    = 4
+ # of cores used                = 4
+ # of MCMC samples (per chain)  = 2000
+ # of burn-in samples           = 1000
+ # of subjects                  = 28
+ # of (max) trials per subject  = 2591
+
+
+************************************
+**** Model fitting is complete! ****
+************************************
+
+Model name  = bandit2arm_delta
+Data file   = ~/phDComputations/model-inteli-research2019/dataset_model_bayesian_alcoholsaccharin.txt
+
+Details:
+ # of chains                    = 4
+ # of cores used                = 4
+ # of MCMC samples (per chain)  = 2000
+ # of burn-in samples           = 1000
+ # of subjects                  = 13
+ # of (max) trials per subject  = 2627
+
+
+************************************
+**** Model fitting is complete! ****
+************************************
+
+Model name  = bandit2arm_delta
+Data file   = ~/phDComputations/model-inteli-research2019/dataset_model_bayesian_saccharin.txt
+
+Details:
+ # of chains                    = 4
+ # of cores used                = 4
+ # of MCMC samples (per chain)  = 2000
+ # of burn-in samples           = 1000
+ # of subjects                  = 28
+ # of (max) trials per subject  = 2385
+
+
+************************************
+**** Model fitting is complete! ****
+************************************
+
+Model name  = bandit2arm_delta
+Data file   = ~/phDComputations/model-inteli-research2019/dataset_model_bayesian_water.txt
+
+Details:
+ # of chains                    = 4
+ # of cores used                = 4
+ # of MCMC samples (per chain)  = 2000
+ # of burn-in samples           = 1000
+ # of subjects                  = 14
+ # of (max) trials per subject  = 2150
+
+
+************************************
+**** Model fitting is complete! ****
+************************************
+[1] "2020-02-03 18:22:44 CET" "2020-02-03 21:20:21 CET"
+Komunikaty ostrzegawcze:
+1: pakiet ‘hBayesDM’ został zbudowany w wersji R 3.4.4
+2: pakiet ‘Rcpp’ został zbudowany w wersji R 3.4.4
+3: There were 37 divergent transitions after warmup. Increasing adapt_delta above 0.95 may help. See
+http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+4: Examine the pairs() plot to diagnose sampling problems
