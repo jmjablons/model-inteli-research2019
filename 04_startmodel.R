@@ -39,14 +39,14 @@ getModelMice <-
 # for one parameter
 # note: no loop for animals inside
 optimalizeParameters_ <-
-  function(A, list.parameters){
+  function(dataset, list.parameters){
     out = list(
-      tag = A$tag[1], 
+      tag = dataset$tag[1], 
       par = 0, 
       value = Inf, 
       maxPar = NA)
     for(i in list.parameters){
-      value = model(par = i, A = A)
+      value = model(par = i, a = dataset)
       # takes the function of general env
       out$maxPar = i
       if(is.finite(value) & 

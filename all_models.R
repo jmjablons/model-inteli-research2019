@@ -2,6 +2,9 @@
 # judyta
 # model choices
 
+# dependency --------------------------------------------------------------
+library(dplyr)
+
 # result ------------------------------------------------------------------
 rmodel <- list()
 fig <- list()
@@ -27,13 +30,13 @@ model <-
     for (i in seq_along(sides)) {
       r = rewards[i]
       s = sides[i]
-      if (is.finite(s) & is.finite(r)) {
+      #if (is.finite(s) & is.finite(r)) {
         P = exp(par[2] * Q) / sum(exp(par[2] * Q))
         if(P[s] < .001){P[s] = .001}
         if(P[s] > .999){P[s] = .999}
         nll = -log(P[s]) + nll
         pe = r - Q[s]
-        Q[s] = Q[s] + (par[1] * pe)}}}
+        Q[s] = Q[s] + (par[1] * pe)}}#}
   nll}
 
 {name = "basic"
@@ -60,14 +63,13 @@ model <- function(par, a) {
       for (i in seq_along(sides)) {
         r = rewards[i]
         s = sides[i]
-        if (is.finite(s) & is.finite(r)) {
           P = exp(par[2] * Q) / sum(exp(par[2] * Q))
           if(P[s] < .001){P[s] = .001}
           if(P[s] > .999){P[s] = .999}
           nll = -log(P[s]) + nll
           pe = r - Q[s]
           if (r == 1) {Q[s] = Q[s] + (par[1] * pe)
-          } else {Q[s] = Q[s] + (par[3] * pe)}}}}
+          } else {Q[s] = Q[s] + (par[3] * pe)}}}
     nll}
 
 {name = "dual"
@@ -97,14 +99,13 @@ model <- function(par, a) {
       for (i in seq_along(sides)) {
         r = rewards[i]
         s = sides[i]
-        if (is.finite(s) & is.finite(r)) {
           P = exp(par[2] * Q) / sum(exp(par[2] * Q))
           if(P[s] < .001){P[s] = .001}
           if(P[s] > .999){P[s] = .999}
           nll = -log(P[s]) + nll
           pe = r - Q[s]
           alpha = par[3] * abs(pe) + (1 - par[3]) * alpha.zero
-          Q[s] = Q[s] + (alpha * pe)}}}
+          Q[s] = Q[s] + (alpha * pe)}}
     nll}
 
 {name = "attention"
@@ -112,6 +113,43 @@ model <- function(par, a) {
       alpha.zero = initials.default,
       beta = initials.beta,
       ni= initials.default) %>%
+    as.list()
+  rmodel[[name]] <- getModelMice(initial) %>%
+    mutate(name = name,
+           aic = calculateAIC(length(initial), as.numeric(value)))}
+
+
+# attention cumulative ----------------------------------------------------
+model <- function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 1 |
+      par[2] < 0 | par[2] > 50 |
+      par[3] < 0 | par[3] > 1) {
+    nll = Inf
+  } else {
+    Q = c(0, 0)
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner / 2)
+    alpha = par[1]
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+      if(P[s] < .001){P[s] = .001}
+      if(P[s] > .999){P[s] = .999}
+      nll = -log(P[s]) + nll
+      pe = r - Q[s]
+      alpha = par[3] * abs(pe) + (1 - par[3]) * alpha
+      Q[s] = Q[s] + (alpha * pe)}}
+  nll}
+
+{name = "attention+"
+  initial <- expand.grid(
+    alpha.first = initials.default,
+    beta = initials.beta,
+    ni= initials.default) %>%
     as.list()
   rmodel[[name]] <- getModelMice(initial) %>%
     mutate(name = name,
@@ -133,14 +171,13 @@ model <-
       for (i in seq_along(sides)) {
         r = rewards[i]
         s = sides[i]
-        if (is.finite(s) & is.finite(r)) {
-          P = exp(par[2] * Q) / sum(exp(par[2] * Q))
-          if(P[s] < .001){P[s] = .001}
-          if(P[s] > .999){P[s] = .999}
-          nll = -log(P[s]) + nll
-          pe = r - Q[s]
-          Q[s] = Q[s] + (par[1] * pe)
-          Q[-s] = Q[-s] - (par[1] * pe)}}}
+        P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+        if(P[s] < .001){P[s] = .001}
+        if(P[s] > .999){P[s] = .999}
+        nll = -log(P[s]) + nll
+        pe = r - Q[s]
+        Q[s] = Q[s] + (par[1] * pe)
+        Q[-s] = Q[-s] - (par[1] * pe)}}
     nll}
 
 {name = "fictitious"
@@ -169,7 +206,6 @@ model <-
       for (i in seq_along(sides)) {
         r = rewards[i]
         s = sides[i]
-        if (is.finite(s) & is.finite(r)) {
           P = exp(par[2] * Q) / sum(exp(par[2] * Q))
           if(P[s] < .001){P[s] = .001}
           if(P[s] > .999){P[s] = .999}
@@ -180,7 +216,7 @@ model <-
             Q[-s] = Q[-s] - (par[1] * pe)
           } else {
             Q[s] = Q[s] + (par[3] * pe)
-            Q[-s] = Q[-s] - (par[3] * pe)}}}}
+            Q[-s] = Q[-s] - (par[3] * pe)}}}
     nll}
 
 {name = "hybrid"
@@ -257,7 +293,6 @@ model <- function(par, a) {
       for (i in seq_along(sides)) {
         r = rewards[i]
         s = sides[i]
-        if (is.finite(s) & is.finite(r)) {
           P = exp(par[2] * Q) / sum(exp(par[2] * Q))
           if(P[s] < .001){P[s] = .001}
           if(P[s] > .999){P[s] = .999}
@@ -266,7 +301,7 @@ model <- function(par, a) {
           Q[s] = Q[s] + par[1] * pe
           delta = 0.5 - Q[s]
           Q[s] = Q[s] + par[3] * delta
-          Q[-s] = Q[-s] + par[3] * delta}}}
+          Q[-s] = Q[-s] + par[3] * delta}}
     nll}
 
 {name = "forgetful"
@@ -344,7 +379,6 @@ model <- function(par, a) {
         now = nows[i]
         t = as.numeric(difftime(now, date, units = 'mins'))
         date[s] = now
-        if (is.finite(s) & is.finite(r)) {
           Q[s] = exp( -(t[s]) * par[3] ) * Q[s]
           tempQ = exp( -(t[-s]) * par[3] ) * Q[-s]
           P[s] = exp(par[2] * Q[s]) / 
@@ -353,7 +387,7 @@ model <- function(par, a) {
           if(P[s] > .999){P[s] = .999}
           nll = -log(P[s]) + nll
           pe = r - Q[s]
-          Q[s] = Q[s] + (par[1] * pe)}}}
+          Q[s] = Q[s] + (par[1] * pe)}}
     nll}
 
 {name = "decay"
@@ -389,7 +423,6 @@ model <- function(par, a) {
       now = nows[i]
       t = as.numeric(difftime(now, date, units = 'mins'))
       date[s] = now
-      if (is.finite(s) & is.finite(r)) {
         Q[s] = exp( -(t[s]) * par[3] ) * Q[s]
         tempQ = exp( -(t[-s]) * par[3] ) * Q[-s]
         P[s] = exp(par[2] * Q[s]) / 
@@ -399,7 +432,7 @@ model <- function(par, a) {
         nll = -log(P[s]) + nll
         pe = r - Q[s]
         Q[s] = Q[s] + (par[1] * pe)
-        Q[-s] = Q[-s] + (par[1] * pe)}}}
+        Q[-s] = Q[-s] + (par[1] * pe)}}
   nll}
 
 {name = "decay*"
@@ -436,7 +469,6 @@ model <- function(par, a) {
       now = nows[i]
       t = as.numeric(difftime(now, date, units = 'mins'))
       date[s] = now
-      if (is.finite(s) & is.finite(r)) {
         decay = ifelse(rew == 1, par[3], par[4])
         Q[s] = exp( -(t[s]) * decay[s] ) * Q[s]
         tempQ = exp( -(t[-s]) * decay[-s] ) * Q[-s]
@@ -448,7 +480,7 @@ model <- function(par, a) {
         pe = r - Q[s]
         Q[s] = Q[s] + (par[1] * pe)
         Q[-s] = Q[-s] + (par[1] * pe)
-        rew[s] = r}}}
+        rew[s] = r}}
   nll}
 
 {name = "decay+"
@@ -540,7 +572,6 @@ model <- function(par, a) {
         now = nows[i]
         t = as.numeric(difftime(now, date, units = 'mins'))
         date[s] = now
-        if (is.finite(s) & is.finite(r)) {
           decay = ifelse(rew == 1, par[3], par[4])
           if(t[s] > par[5]){ 
             Q[s] = exp( -(t[s]) * decay[s] ) * Q[s]}
@@ -554,7 +585,7 @@ model <- function(par, a) {
           nll = -log(P[s]) + nll
           pe = r - Q[s]
           Q[s] = Q[s] + (par[1] * pe)
-          rew[s] = r}}}
+          rew[s] = r}}
     nll}
 
 {name = "decay++"
@@ -641,53 +672,6 @@ model <- function(par, a) {
 #   rmodel[[name]] <- getModelMice(initial) %>%
 #     mutate(name = name,
 #            aic = calculateAIC(length(initial), as.numeric(value)))}
-# old decay ---------------------------------------------------------------
-# model <- 
-#   function(par, a) {
-#     a = a[with(a, order(start)), ]
-#     nll = 0
-#     if (par[1] < 0 | par[1] > 1 |
-#         par[2] < 0 | par[2] > 50 |
-#         par[3] < 0 | par[3] > 1) {
-#       nll = Inf
-#     } else {
-#       temp = nrow(a)
-#       tempQ = c()
-#       Q = c(0, 0)
-#       date = rep(a$start[1], 2)
-#       t = c(0, 0)
-#       P <- vector()
-#       for (i in seq_along(1:temp)) {
-#         r = a$dooropened[i]
-#         s = ceiling(a$corner[i] / 2)
-#         now = a$start[i]
-#         t[1] = as.numeric(difftime(now, date[1], units = 'mins'))
-#         t[2] = as.numeric(difftime(now, date[2], units = 'mins'))
-#         date[s] = now
-#         if (is.finite(s) & is.finite(r)) {
-#           P[s] = exp(par[2] * Q[s]) /  
-#             (sum(exp(par[2] * Q[s]), exp(par[2] * tempQ)))
-#           if(P[s] < .001){P[s] = .001}
-#           if(P[s] > .999){P[s] = .999}
-#           nll = -log(P[s]) + nll
-#           pe = r - Q[s]
-#           Q[s] = Q[s] + (par[1] * pe)
-#           Q[s] = exp( -(t[s]) * par[3] ) * Q[s]
-#           tempQ = exp( -(t[-s]) * par[3] ) * Q[-s]}}}
-#     nll}
-# 
-# {name = "olddecay"
-#   initial <-
-#     expand.grid(
-#       alpha = initials.default,
-#       beta = initials.beta,
-#       storage = initials.primitive) %>%
-#     as.list()
-#   rmodel[[name]] <-
-#     getModelMice(initial) %>%
-#     mutate(name = name,
-#            aic = calculateAIC(
-#              length(initial), as.numeric(value)))}
 #
 # blank decay -------------------------------------------------------------
 model <- function(par, a) {
@@ -710,7 +694,6 @@ model <- function(par, a) {
       now = nows[i]
       t = as.numeric(difftime(now, date, units = 'mins'))
       date[s] = now
-      if (is.finite(s) & is.finite(r)) {
         Q[s] = exp( -(t[s]) * par[2] ) * Q[s]  
         tempQ = exp( -(t[-s]) * par[2] ) * Q[-s]
         P[s] = exp(par[1] * Q[s]) / 
@@ -719,7 +702,7 @@ model <- function(par, a) {
         if(P[s] > .999){P[s] = .999}
         nll = -log(P[s]) + nll
         pe = r - Q[s]
-        Q[s] = Q[s] + pe}}}
+        Q[s] = Q[s] + pe}}
   nll}
 
 {name = "decayblank"
@@ -753,7 +736,6 @@ model <- function(par, a) {
       now = nows[i]
       t = as.numeric(difftime(now, date, units = 'mins'))
       date[s] = now
-      if (is.finite(s) & is.finite(r)) {
         decay = ifelse(rew == 1, par[2], par[3])
         Q[s] = exp( -(t[s]) * decay[s] ) * Q[s]  
         tempQ = exp( -(t[-s]) * decay[-s] ) * Q[-s]
@@ -764,7 +746,7 @@ model <- function(par, a) {
         nll = -log(P[s]) + nll
         pe = r - Q[s]
         Q[s] = Q[s] + pe
-        rew[s] = r}}}
+        rew[s] = r}}
   nll}
 
 {name = "decay+blank"
@@ -777,12 +759,14 @@ model <- function(par, a) {
     mutate(name = name, aic = calculateAIC(length(initial), as.numeric(value)))}
 
 # reproval ----------------------------------------------------------------
+# version 2
 model <- function(par, a) {
     a = a[with(a, order(start)), ]
     nll = 0
     if (par[1] < 0 | par[1] > 1 |
         par[2] < 0 | par[2] > 50 |
-        par[3] < 0 | par[3] > 1) {
+        par[3] < 0 | par[3] > 1 |
+        par[4] < 0 | par[4] > 7) {
       nll = Inf
     } else {
       Q = c(0, 0)
@@ -799,25 +783,159 @@ model <- function(par, a) {
         s = sides[i]
         w = previous[i]
         t = intervals[i]
-        if (is.finite(s) & is.finite(r)) { 
           P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+          if(P[s] < .001){P[s] = .001}
+          if(P[s] > .999){P[s] = .999}
           b0 = log(P[w] / (1 - P[w]))
           if(t > 660) t = 660
-          P[w] = exp(b0 + par[3] * t) / 
-            (1 + exp(b0 + par[3] * t))
+          P[w] = exp(b0 + par[3] * t - par[4]) / 
+            (1 + exp(b0 + par[3] * t - par[4]))
           P[-w] = 1 - P[w]
           if(P[s] < .001){P[s] = .001}
           if(P[s] > .999){P[s] = .999}
           nll = -log(P[s]) + nll
           pe = r - Q[s] 
-          Q[s] = Q[s] + (par[1] * pe)}}}
+          Q[s] = Q[s] + (par[1] * pe)}}
     nll}
 
 {name = "reproval"
   initial <- expand.grid(
       alpha = initials.default,
       beta = initials.beta,
-      iota = initials.primitive) %>% 
+      iota = initials.primitive,
+      iota = initials.default) %>% 
+    as.list()
+  rmodel[[name]] <- getModelMice(initial) %>%
+    mutate(name = name, aic = calculateAIC(length(initial), as.numeric(value)))}
+
+
+# puzzlement --------------------------------------------------------------
+model <- function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 1 |
+      par[2] < 0 | par[2] > 50 | 
+      par[3] < 0 | par[3] > 1) {
+    nll = Inf
+  } else {
+    tempQ = c()
+    Q = c(0, 0)
+    date = rep(a$start[1], 2)
+    t = c(0, 0)
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner/2)
+    nows = a$start
+    beta.zero = par[2]
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      now = nows[i]
+      t = as.numeric(difftime(now, date, units = 'mins'))
+      date[s] = now
+        beta = exp( -(t[s]) * par[3] ) * beta.zero
+        P = exp(beta * Q) / sum(exp(beta * Q))
+        if(P[s] < .001){P[s] = .001}
+        if(P[s] > .999){P[s] = .999}
+        nll = -log(P[s]) + nll
+        pe = r - Q[s]
+        Q[s] = Q[s] + (par[1] * pe)}}
+  nll}
+
+{name = "puzzlement"
+  initial <- expand.grid(
+    alpha = initials.default,
+    beta = initials.beta,
+    bdecay = initials.primitive) %>%
+    as.list()
+  rmodel[[name]] <- getModelMice(initial) %>%
+    mutate(name = name, aic = calculateAIC(length(initial), as.numeric(value)))}
+
+
+# puzzlement split --------------------------------------------------------
+model <- function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 1 |
+      par[2] < 0 | par[2] > 50 | 
+      par[3] < 0 | par[3] > 1 |
+      par[4] < 0 | par[4] > 1) {
+    nll = Inf
+  } else {
+    Q = c(0, 0)
+    date = rep(a$start[1], 2)
+    t = c(0, 0)
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner/2)
+    nows = a$start
+    rew = c(0,0)
+    beta.zero = par[2]
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      now = nows[i]
+      t = as.numeric(difftime(now, date, units = 'mins'))
+      date[s] = now
+      decay = ifelse(rew == 1, par[3], par[4])
+      beta = exp( -(t[s]) * decay ) * beta.zero
+      P = exp(beta * Q) / sum(exp(beta * Q))
+      if(P[s] < .001){P[s] = .001}
+      if(P[s] > .999){P[s] = .999}
+      nll = -log(P[s]) + nll
+      pe = r - Q[s]
+      Q[s] = Q[s] + (par[1] * pe)
+      rew[s] = r}}
+  nll}
+
+{name = "puzzlement+"
+  initial <- expand.grid(
+    alpha = initials.default,
+    beta = initials.beta,
+    bdecay.pos = initials.primitive,
+    bdecay.neg = initials.primitive) %>%
+    as.list()
+  rmodel[[name]] <- getModelMice(initial) %>%
+    mutate(name = name, aic = calculateAIC(length(initial), as.numeric(value)))}
+
+# puzzlement fictitious ---------------------------------------------------
+model <- function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 1 |
+      par[2] < 0 | par[2] > 50 | 
+      par[3] < 0 | par[3] > 1) {
+    nll = Inf
+  } else {
+    Q = c(0, 0)
+    date = rep(a$start[1], 2)
+    t = c(0, 0)
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner/2)
+    nows = a$start
+    beta.zero = par[2]
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      now = nows[i]
+      t = as.numeric(difftime(now, date, units = 'mins'))
+      date[s] = now
+      beta = exp( -(t[s]) * par[3] ) * beta.zero
+      P = exp(beta * Q) / sum(exp(beta * Q))
+      if(P[s] < .001){P[s] = .001}
+      if(P[s] > .999){P[s] = .999}
+      nll = -log(P[s]) + nll
+      pe = r - Q[s]
+      Q[s] = Q[s] + (par[1] * pe)
+      Q[-s] = Q[-s] - (par[1] * pe)}}
+  nll}
+
+{name = "puzzlement*"
+  initial <- expand.grid(
+    alpha = initials.default,
+    beta = initials.beta,
+    bdecay = initials.primitive) %>%
     as.list()
   rmodel[[name]] <- getModelMice(initial) %>%
     mutate(name = name, aic = calculateAIC(length(initial), as.numeric(value)))}
@@ -848,13 +966,12 @@ model <-
       for (i in seq_along(sides)) {
         r = rewards[i]
         s = sides[i]
-        if (is.finite(s) & is.finite(r)) {
           P = exp(par[2] * Q) / sum(exp(par[2] * Q))
           if(P[s] < .001){P[s] = .001}
           if(P[s] > .999){P[s] = .999}
           nll = -log(P[s]) + nll
           pe = r - Q[s]
-          Q[s] = Q[s] + (par[1] * pe)}}}
+          Q[s] = Q[s] + (par[1] * pe)}}
     nll}
 
 {name = "basic4arm"
@@ -865,3 +982,86 @@ model <-
   rmodel[[name]] <- getModelMice(list.parameters = initial, 
                                  A = subset(dmodel4arm, visitduration > 2)) %>%
     mutate(name = name, aic = calculateAIC(length(initial), as.numeric(value)))}
+
+# noisy win-stay ----------------------------------------------------------
+#   doi: 10.7554/eLife.49547
+
+model <- 
+  function(par, a) {
+    a = a[with(a, order(start)), ]
+    nll = 0
+    if (par[1] < 0.001 | par[1] > 1.999) {
+      nll = Inf
+    } else {
+      P <- vector()
+      rewards = a$dooropened
+      sides = ceiling(a$corner/2)
+      previous.rewards = lag(rewards)
+      previous.sides = lag(sides)
+      for (i in seq_along(sides)) {
+        r = previous.rewards[i]
+        c = previous.sides[i]
+        k = sides[i]
+        stay = c == k
+        win = r == 1
+        if(i == 1){ P[k] = .5
+        } else {
+          if((win & stay) | (!win & !stay)){ P[k] = 1 - par[1]/2 } 
+          if((win & !stay)| (!win & stay)){ P[k] = 0 + par[1]/2 }}
+        nll = -log(P[k]) + nll}}
+    nll}
+
+{name = "noisywinstay"
+  initial <- c(epsilon = seq(0.001, 1.999, 0.1))
+  rmodel[[name]] <- (function(parameters, a = dmodel) {
+    animal.tags = as.character(levels(as.factor(a$tag)))
+    progressbar <- txtProgressBar(
+      min = 0, max = length(animal.tags), char = '*', style = 3)
+    output = list()
+    for (m in seq_along(animal.tags)) {
+      setTxtProgressBar(progressbar, m)
+      dmouse = a[a$tag == animal.tags[m], ]
+      output[[m]] = optimalizeParameters_(dmouse, parameters)}
+    close(progressbar)
+    dplyr::bind_rows(output)})(initial) %>%
+    mutate(name = name, aic = calculateAIC(1, value))}
+
+# noisy win-stay + interval -----------------------------------------------
+model <- 
+  function(par, a) {
+    a = a[with(a, order(start)), ]
+    nll = 0
+    if (par[1] < 0.001 | par[1] > 1.999 |
+        par[2] < 0.001 | par[2] > 1.999) {
+      nll = Inf
+    } else {
+      P <- vector()
+      rewards = a$dooropened
+      sides = ceiling(a$corner/2)
+      interval = a$intervalb
+      previous.rewards = lag(rewards)
+      previous.sides = lag(sides)
+      for (i in seq_along(sides)) {
+        r = previous.rewards[i]
+        c = previous.sides[i]
+        k = sides[i]
+        t = interval[i]
+        stay = c == k
+        win = r == 1
+        if(i == 1){ P[k] = .5
+        } else {
+          param = ifelse(t > 5, par[1], par[2])
+          if((win & stay) | (!win & !stay)){ P[k] = 1 - param/2 } 
+          if((win & !stay)| (!win & stay)){ P[k] = param/2 }}
+        nll = -log(P[k]) + nll}}
+    nll}
+
+{name = "noisywinstay+"
+  initial <- expand.grid(
+    epsilonshort = seq(0.001, 1.9, 0.1),
+    epsilonlong = seq(0.001, 1.9, 0.1)) %>%
+    as.list()
+  rmodel[[name]] <- (getModelMice(list.parameters = initial) %>%
+                       mutate(name = name, 
+                              aic = calculateAIC(length(initial), 
+                                                 as.numeric(value))))}

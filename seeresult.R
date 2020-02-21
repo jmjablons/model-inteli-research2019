@@ -90,7 +90,7 @@ fig$coursebasic4arm
   plotparamhbayes("prl_fictitious_rp", c("eta_pos","eta_neg","alpha")) + 
   scale_y_continuous(limits = c(0,1))) * theme(legend.position = "none")
 
-plotparamA("basic")
+plotparamB("infirmitive")
 
 # siatka do optymalizacji
 #   stara
@@ -116,3 +116,9 @@ expand.grid(
 #   ggplot(aes(x = substance, y = as.numeric(value), fill = substance)) +
 #   geom_boxplot()+
 #   facet_wrap(~par, scales = "free_y")
+
+
+# cross validation --------------------------------------------------------
+
+#saveRDS(dall, "~/phDComputations/model-inteli-research2019/data/dall.rds")
+#saveRDS(dmodel, "~/phDComputations/model-inteli-research2019/data/dmodel.rds")
