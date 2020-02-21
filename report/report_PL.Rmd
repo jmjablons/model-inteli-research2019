@@ -1,0 +1,899 @@
+---
+title: "Inteli nagrody"
+subtitle: "wersja skrócona"
+date: "11 lutego 2020"
+output:
+  html_document:
+    theme: united
+    highlight: kate
+    toc: true
+    toc_depth: 2
+    df_print: paged
+    fig_width: 9
+    fig_height: 12
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
+library(dplyr)
+library(patchwork)
+```
+
+# Results {.tabset .tabset-fade}
+
+## AIC {.tabset .tabset-fade}
+
+### raw
+
+```{r echo = F, eval = T, fig.height=12, fig.width=7}
+fig$aic
+```
+
+```{r echo = F, eval = T, fig.height=12, fig.width=7}
+fig$aic_
+```
+
+### delta
+
+```{r echo = F, eval = T, fig.height=16, fig.width=6}
+fig$deltaaic
+```
+
+### average
+
+```{r echo = F, eval = T, fig.height=12, fig.width=6}
+fig$averageaic
+```
+
+## predictions
+
+```{r echo = F, eval=T, fig.height=12, fig.width=6}
+fig$prediction + theme_publication + theme(legend.position = "none")
+```
+
+## predictions+ {.tabset .tabset-fade}
+
+### basic
+
+```{r echo = F, eval = T, fig.height=12, fig.width=6}
+fig$coursebasic
+```
+
+### decay+
+
+```{r echo = F, eval = T, fig.height=12, fig.width=7}
+fig$`coursedecay+`
+```
+
+### fictitious
+
+```{r echo = F, eval = T, fig.height=12, fig.width=7}
+fig$coursefictitious
+```
+
+### basic4arm
+
+```{r echo = F, eval = T, fig.height=12, fig.width=7}
+fig$coursebasic4arm
+```
+
+## parameter {.tabset .tabset-fade}
+
+### basic
+
+basic4arm | basic | hbayedDM "bandit2arm"
+
+```{r echo = F, eval = T, fig.height=4, fig.width=8}
+(plotparamA("basic4arm")+
+  plotparamA("basic")+
+  plotparamhbayes("bandit2arm", "A")) *
+  theme_publication *
+  scale_y_continuous(limits = c(0,1)) *
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+
+(plotparamB("basic4arm")+
+  plotparamB("basic")+
+  plotparamhbayes("bandit2arm", "tau")) *
+  theme_publication *
+  scale_y_continuous(limits = c(0,50)) *
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+
+```
+
+### dual
+
+dual | hbayesDM "prl_rp"
+
+```{r echo = F, eval = T, fig.height=4, fig.width=8}
+(plotparamA("dual") + 
+  plotparamhbayes("prl_rp", c("Apun", "Arew"))  + 
+  scale_y_continuous(limits = c(0,1)))  * theme(legend.position = "none")*
+  theme_publication *
+  scale_y_continuous(limits = c(0,1)) *
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+```
+
+```{r echo = F, eval = T, fig.height=4, fig.width=4}
+(plotparamB("dual") + 
+  plotparamhbayes("prl_rp", c("beta"))) *
+  theme_publication *
+  scale_y_continuous(limits = c(0,50)) *
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+```
+
+### fictitious
+
+fictitious | hbayesDM "prl_fictitious"
+
+```{r echo = F, eval = T, fig.height=4, fig.width=4}
+(plotparamA("fictitious") + scale_y_continuous(limits = c(0,1)) +
+  paramhbayes[["prl_fictitious"]] %>% 
+  mutate(tag = subjID,
+         subjID = NULL) %>%
+  tidyr::gather(par, value, -tag, -substance) %>%
+  filter(par %in% c("alpha")) %>%
+  ggplot(aes(x = substance, y = as.numeric(value), fill = substance)) +
+  geom_boxplot()+
+  facet_wrap(~par, scales = "free_y") +
+  scale_y_continuous(limits = c(0,1))) *
+  theme_publication *
+  scale_y_continuous(limits = c(0,1)) *
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+
+(plotparamB("fictitious") + scale_y_continuous(limits = c(0,50)) +
+  paramhbayes[["prl_fictitious"]] %>% 
+  mutate(tag = subjID,
+         subjID = NULL) %>%
+  tidyr::gather(par, value, -tag, -substance) %>%
+  filter(par %in% c("beta")) %>%
+  ggplot(aes(x = substance, y = as.numeric(value), fill = substance)) +
+  geom_boxplot()+
+  facet_wrap(~par, scales = "free_y") +
+  scale_y_continuous(limits = c(0,50))) *
+  theme_publication *
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+```
+
+### hybrid
+
+hybrid | hbayesDM "prl_fictitious_rp"
+
+```{r echo = F, eval = T, fig.height=4, fig.width=9}
+(plotparamA("hybrid") + 
+  plotparamhbayes("prl_fictitious_rp", c("eta_pos","eta_neg","alpha")) + 
+  scale_y_continuous(limits = c(0,1))) * theme(legend.position = "none") *
+  theme_publication *
+  scale_y_continuous(limits = c(0,1)) *
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+```
+
+## hbayes parameters {.tabset .tabset-fade}
+
+### bandit2arm
+
+```{r echo = F, eval = T, fig.height= 5, fig.width=9}
+plotInd(resulthbayes$bandit2arm$alcohol, "A") + plotInd(resulthbayes$bandit2arm$alcohol, "tau")  
+```
+
+
+#### alcohol
+
+```{r echo = F, eval = T, fig.height=4, fig.width=7}
+plot(resulthbayes$bandit2arm$alcohol) 
+```
+
+#### alcoholsaccharin
+
+```{r echo = F, eval = T, fig.height=4, fig.width=7}
+plot(resulthbayes$bandit2arm$alcoholsaccharin) 
+```
+
+#### saccharin
+
+```{r echo = F, eval = T, fig.height=4, fig.width=7}
+plot(resulthbayes$bandit2arm$saccharin) 
+```
+
+#### water
+
+```{r echo = F, eval = T, fig.height=4, fig.width=7}
+plot(resulthbayes$bandit2arm$saccharin) 
+```
+
+### prl_rp (dual)
+
+#### alcohol
+
+```{r echo = F, eval = T, fig.height= 5, fig.width=12}
+plotInd(resulthbayes$prl_rp$alcohol, "Apun") + plotInd(resulthbayes$prl_rp$alcohol, "Arew") + plotInd(resulthbayes$prl_rp$alcohol, "beta")  
+```
+
+```{r echo = F, eval = T, fig.height=3, fig.width=7}
+plot(resulthbayes$prl_rp$alcohol) 
+```
+
+#### alcoholsaccharin
+
+```{r echo = F, eval = T, fig.height=3, fig.width=7}
+plot(resulthbayes$prl_rp$alcoholsaccharin) 
+```
+
+#### saccharin
+
+```{r echo = F, eval = T, fig.height=3, fig.width=7}
+plot(resulthbayes$prl_rp$saccharin) 
+```
+
+#### water
+
+```{r echo = F, eval = T, fig.height=3, fig.width=7}
+plot(resulthbayes$prl_rp$saccharin) 
+```
+
+### prl_fictitious (fictitious)
+
+#### alcohol
+
+```{r echo = F, eval = T, fig.height=3, fig.width=7}
+plot(resulthbayes$prl_fictitious$alcohol) 
+```
+
+#### alcoholsaccharin
+
+```{r echo = F, eval = T, fig.height=3, fig.width=7}
+plot(resulthbayes$prl_fictitious$alcoholsaccharin) 
+```
+
+#### saccharin
+
+```{r echo = F, eval = T, fig.height=3, fig.width=7}
+plot(resulthbayes$prl_fictitious$saccharin) 
+```
+
+#### water
+
+```{r echo = F, eval = T, fig.height=3, fig.width=7}
+plot(resulthbayes$prl_fictitious$saccharin) 
+```
+
+### prl_fictitious_rp (fictitious)
+
+#### alcohol
+
+```{r echo = F, eval = T, fig.height=3, fig.width=9}
+plot(resulthbayes$prl_fictitious_rp$alcohol) 
+```
+
+#### alcoholsaccharin
+
+```{r echo = F, eval = T, fig.height=3, fig.width=9}
+plot(resulthbayes$prl_fictitious_rp$alcoholsaccharin) 
+```
+
+#### saccharin
+
+```{r echo = F, eval = T, fig.height=3, fig.width=9}
+plot(resulthbayes$prl_fictitious_rp$saccharin) 
+```
+
+#### water
+
+```{r echo = F, eval = T, fig.height=3, fig.width=9}
+plot(resulthbayes$prl_fictitious_rp$saccharin) 
+```
+
+## hbayes fit
+
+```{r eval = FALSE, echo = TRUE}
+#Error: Can't mix NA and not NA values in 'r_eff'.
+hBayesDM::printFit(
+  resulthbayes$bandit2arm$saccharin,
+  resulthbayes$prl_fictitious$saccharin, 
+  resulthbayes$prl_rp$saccharin,
+  resulthbayes$prl_fictitious_rp$saccharin, 
+  ic = "looic")
+```
+
+
+***
+
+# Model {.tabset .tabset-fade}
+
+ <!-- .tabset-pills -->
+
+## basic
+
+2arm bandit 
+
+```{r}
+  function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 1 |
+      par[2] < 0 | par[2] > 50) {
+    nll = Inf
+  } else {
+    Q = c(0, 0)
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner / 2)
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      if (is.finite(s) & is.finite(r)) {
+        P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+        if(any(P < .001)){
+          index = which(P < .001)
+          P[index] = .001; P[-(index)] = .999}
+        nll = -log(P[s]) + nll
+        pe = r - Q[s]
+        Q[s] = Q[s] + (par[1] * pe)}}}
+  nll}
+```
+
+## dual
+
+learning rate split by reward
+
+```{r}
+function(par, a) {
+    a = a[with(a, order(start)), ]
+    nll = 0
+    if (par[1] < 0 | par[1] > 1 |
+        par[2] < 0 | par[2] > 50 |
+        par[3] < 0 | par[3] > 1) {
+      nll = Inf
+    } else {
+      Q = c(0, 0)
+      P <- vector()
+      rewards = a$dooropened
+      sides = ceiling(a$corner / 2)
+      for (i in seq_along(sides)) {
+        r = rewards[i]
+        s = sides[i]
+        if (is.finite(s) & is.finite(r)) {
+          P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+          if(any(P < .001)){
+            index = which(P < .001)
+            P[index] = .001; P[-(index)] = .999}
+          nll = -log(P[s]) + nll
+          pe = r - Q[s]
+          if (r == 1) {Q[s] = Q[s] + (par[1] * pe)
+          } else {Q[s] = Q[s] + (par[3] * pe)}}}}
+    nll}
+```
+
+## attention
+
+lerning rate related to prediction error
+
+```{r}
+function(par, a) {
+    a = a[with(a, order(start)), ]
+    nll = 0
+    if (par[1] < 0 | par[1] > 1 |
+        par[2] < 0 | par[2] > 50 |
+        par[3] < 0 | par[3] > 1) {
+      nll = Inf
+    } else {
+      Q = c(0, 0)
+      P <- vector()
+      rewards = a$dooropened
+      sides = ceiling(a$corner / 2)
+      alpha.zero = par[1]
+      for (i in seq_along(sides)) {
+        r = rewards[i]
+        s = sides[i]
+        if (is.finite(s) & is.finite(r)) {
+          P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+          if(any(P < .001)){
+            index = which(P < .001)
+            P[index] = .001; P[-(index)] = .999}
+          nll = -log(P[s]) + nll
+          pe = r - Q[s]
+          alpha = par[3] * abs(pe) + (1 - par[3]) * alpha.zero
+          Q[s] = Q[s] + (alpha * pe)}}}
+    nll}
+```
+
+## fictitious
+
+subsequent update of nonchosen alternative
+
+```{r}
+function(par, a) {
+    a = a[with(a, order(start)), ]
+    nll = 0
+    if ((par[1] < 0 | par[1] > 1) |
+        (par[2] < 0 | par[2] > 50)) {
+      nll = Inf
+    } else {
+      Q = c(0, 0)
+      P <- vector()
+      rewards = a$dooropened
+      sides = ceiling(a$corner / 2)
+      for (i in seq_along(sides)) {
+        r = rewards[i]
+        s = sides[i]
+        if (is.finite(s) & is.finite(r)) {
+          P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+          if(any(P < .001)){
+            index = which(P < .001)
+            P[index] = .001; P[-(index)] = .999}
+          nll = -log(P[s]) + nll
+          pe = r - Q[s]
+          Q[s] = Q[s] + (par[1] * pe)
+          Q[-s] = Q[-s] - (par[1] * pe)}}}
+    nll}
+```
+
+## hybrid
+
+fictitious update and split learning rate
+
+```{r}
+function(par, a) {
+    a = a[with(a, order(start)), ]
+    nll = 0
+    if (par[1] < 0 | par[1] > 1 |
+        par[2] < 0 | par[2] > 50 |
+        par[3] < 0 | par[3] > 1) {
+      nll = Inf
+    } else {
+      Q = c(0, 0)
+      P <- vector()
+      rewards = a$dooropened
+      sides = ceiling(a$corner / 2)
+      for (i in seq_along(sides)) {
+        r = rewards[i]
+        s = sides[i]
+        if (is.finite(s) & is.finite(r)) {
+          P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+          if(any(P < .001)){
+            index = which(P < .001)
+            P[index] = .001; P[-(index)] = .999}
+          nll = -log(P[s]) + nll
+          pe = r - Q[s]
+          if (r == 1) {
+            Q[s] = Q[s] + (par[1] * pe)
+            Q[-s] = Q[-s] - (par[1] * pe)
+          } else {
+            Q[s] = Q[s] + (par[3] * pe)
+            Q[-s] = Q[-s] - (par[3] * pe)}}}}
+    nll}
+```
+
+## forgetful
+
+applied Collins et al. idea of forgetting `{cit}`
+
+```{r}
+function(par, a) {
+    a = a[with(a, order(start)), ]
+    nll = 0
+    if (par[1] < 0 | par[1] > 1 |
+        par[2] < 0 | par[2] > 50 |
+        par[3] < 0 | par[3] > 1) {
+      nll = Inf
+    } else {
+      Q = c(0, 0)
+      P <- vector()
+      rewards = a$dooropened
+      sides = ceiling(a$corner / 2)
+      for (i in seq_along(sides)) {
+        r = rewards[i]
+        s = sides[i]
+        if (is.finite(s) & is.finite(r)) {
+          P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+          if(any(P < .001)){
+            index = which(P < .001)
+            P[index] = .001; P[-(index)] = .999}
+          nll = -log(P[s]) + nll
+          pe = r - Q[s]
+          Q[s] = Q[s] + par[1] * pe
+          delta = 0.5 - Q[s]
+          Q[s] = Q[s] + par[3] * delta
+          Q[-s] = Q[-s] + par[3] * delta}}}
+    nll}
+```
+
+## decay
+
+decay of expected reward along with time, for both sides
+
+```{r}
+function(par, a) {
+    a = a[with(a, order(start)), ]
+    nll = 0
+    if (par[1] < 0 | par[1] > 1 |
+        par[2] < 0 | par[2] > 50 |
+        par[3] < 0 | par[3] > 1) {
+      nll = Inf
+    } else {
+      # temp = nrow(a)
+      tempQ = c()
+      Q = c(0, 0)
+      date = rep(a$start[1], 2)
+      t = c(0, 0)
+      P <- vector()
+      rewards = a$dooropened
+      sides = ceiling(a$corner/2)
+      nows = a$start
+      for (i in seq_along(sides)) {
+        r = rewards[i]
+        s = sides[i]
+        now = nows[i]
+        t = as.numeric(difftime(now, date, units = 'mins'))
+        date[s] = now
+        if (is.finite(s) & is.finite(r)) {
+          Q[s] = exp( -(t[s]) * par[3] ) * Q[s]
+          tempQ = exp( -(t[-s]) * par[3] ) * Q[-s]
+          P[s] = exp(par[2] * Q[s]) / 
+            (sum(exp(par[2] * Q[s]), exp(par[2] * tempQ)))
+          if(P[s] < .001){P[s] = .001}
+          if(P[s] > .999){P[s] = .999}
+          nll = -log(P[s]) + nll
+          pe = r - Q[s]
+          Q[s] = Q[s] + (par[1] * pe)}}}
+    nll}
+```
+
+## decay+
+
+```{r}
+function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 1 |
+      par[2] < 0 | par[2] > 50 |
+      par[3] < 0 | par[3] > 1 |
+      par[4] < 0 | par[4] > 1) {
+    nll = Inf
+  } else {
+    tempQ = c()
+    Q = c(0, 0)
+    date = rep(a$start[1], 2)
+    t = c(0, 0)
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner/2)
+    nows = a$start
+    rew = c(0,0)
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      now = nows[i]
+      t = as.numeric(difftime(now, date, units = 'mins'))
+      date[s] = now
+      if (is.finite(s) & is.finite(r)) {
+        decay = ifelse(rew == 1, par[3], par[4])
+        Q[s] = exp( -(t[s]) * decay[s] ) * Q[s]
+        tempQ = exp( -(t[-s]) * decay[-s] ) * Q[-s]
+        P[s] = exp(par[2] * Q[s]) / 
+          (sum(exp(par[2] * Q[s]), exp(par[2] * tempQ)))
+        if(P[s] < .001){P[s] = .001}
+        if(P[s] > .999){P[s] = .999}
+        nll = -log(P[s]) + nll
+        pe = r - Q[s]
+        Q[s] = Q[s] + (par[1] * pe)
+        Q[-s] = Q[-s] + (par[1] * pe)
+        rew[s] = r}}}
+  nll}
+```
+
+## decay++
+
+also decay with threshold (combined functions)
+
+```{r}
+function(par, a) {
+    a = a[with(a, order(start)), ]
+    nll = 0
+    if (par[1] < 0 | par[1] > 1 |
+        par[2] < 0 | par[2] > 50 |
+        par[3] < 0 | par[3] > 1 |
+        par[4] < 0 | par[4] > 1 |
+        par[5] < 1 | par[5] > 60) {
+      nll = Inf
+    } else {
+      tempQ = c()
+      Q = c(0, 0)
+      date = rep(a$start[1], 2)
+      t = c(0, 0)
+      P <- vector()
+      rewards = a$dooropened
+      sides = ceiling(a$corner/2)
+      nows = a$start
+      rew = c(0,0)
+      for (i in seq_along(sides)) {
+        r = rewards[i]
+        s = sides[i]
+        now = nows[i]
+        t = as.numeric(difftime(now, date, units = 'mins'))
+        date[s] = now
+        if (is.finite(s) & is.finite(r)) {
+          decay = ifelse(rew == 1, par[3], par[4])
+          if(t[s] > par[5]){ 
+            Q[s] = exp( -(t[s]) * decay[s] ) * Q[s]}
+          tempQ = ifelse(t[-s] > par[5], 
+            exp( -(t[-s]) * decay[-s] ) * Q[-s],
+            Q[-s])
+          P[s] = exp(par[2] * Q[s]) / 
+            (sum(exp(par[2] * Q[s]), exp(par[2] * tempQ)))
+          if(P[s] < .001){P[s] = .001}
+          if(P[s] > .999){P[s] = .999}
+          nll = -log(P[s]) + nll
+          pe = r - Q[s]
+          Q[s] = Q[s] + (par[1] * pe)
+          rew[s] = r}}}
+    nll}
+```
+
+## old decay
+
+which was wrong
+
+```{r}
+  function(par, a) {
+    a = a[with(a, order(start)), ]
+    nll = 0
+    if (par[1] < 0 | par[1] > 1 |
+        par[2] < 0 | par[2] > 50 |
+        par[3] < 0 | par[3] > 1) {
+      nll = Inf
+    } else {
+      temp = nrow(a)
+      tempQ = c()
+      Q = c(0, 0)
+      date = rep(a$start[1], 2)
+      t = c(0, 0)
+      P <- vector()
+      for (i in seq_along(1:temp)) {
+        r = a$dooropened[i]
+        s = ceiling(a$corner[i] / 2)
+        now = a$start[i]
+        t[1] = as.numeric(difftime(now, date[1], units = 'mins'))
+        t[2] = as.numeric(difftime(now, date[2], units = 'mins'))
+        date[s] = now
+        if (is.finite(s) & is.finite(r)) {
+          P[s] = exp(par[2] * Q[s]) /  
+            (sum(exp(par[2] * Q[s]), exp(par[2] * tempQ)))
+          if(P[s] < .001){P[s] = .001}
+          if(P[s] > .999){P[s] = .999}
+          nll = -log(P[s]) + nll
+          pe = r - Q[s]
+          Q[s] = Q[s] + (par[1] * pe)
+          Q[s] = exp( -(t[s]) * par[3] ) * Q[s]
+          tempQ = exp( -(t[-s]) * par[3] ) * Q[-s]}}}
+    nll}
+```
+
+## decay blank
+
+learning rate set as 1
+
+```{r}
+function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 50 |
+      par[2] < 0 | par[2] > 1) {
+    nll = Inf
+  } else {
+    Q = c(0, 0)
+    date = rep(a$start[1], 2)
+    t = c(0, 0)
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner/2)
+    nows = a$start
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      now = nows[i]
+      t = as.numeric(difftime(now, date, units = 'mins'))
+      date[s] = now
+      if (is.finite(s) & is.finite(r)) {
+        Q[s] = exp( -(t[s]) * par[2] ) * Q[s]  
+        tempQ = exp( -(t[-s]) * par[2] ) * Q[-s]
+        P[s] = exp(par[1] * Q[s]) / 
+          (sum(exp(par[1] * Q[s]), exp(par[1] * tempQ)))
+        if(P[s] < .001){P[s] = .001}
+        if(P[s] > .999){P[s] = .999}
+        nll = -log(P[s]) + nll
+        pe = r - Q[s]
+        Q[s] = Q[s] + pe}}}
+  nll}
+```
+
+## decay+ blank
+
+learning rate set as 1.
+
+```{r}
+function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 50 |
+      par[2] < 0 | par[2] > 1 |
+      par[3] < 0 | par[3] > 1) {
+    nll = Inf
+  } else {
+    Q = c(0, 0)
+    date = rep(a$start[1], 2)
+    t = c(0, 0)
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner/2)
+    nows = a$start
+    rew = c(0,0)
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      now = nows[i]
+      t = as.numeric(difftime(now, date, units = 'mins'))
+      date[s] = now
+      if (is.finite(s) & is.finite(r)) {
+        decay = ifelse(rew == 1, par[2], par[3])
+        Q[s] = exp( -(t[s]) * decay[s] ) * Q[s]  
+        tempQ = exp( -(t[-s]) * decay[-s] ) * Q[-s]
+        P[s] = exp(par[1] * Q[s]) / 
+          (sum(exp(par[1] * Q[s]), exp(par[1] * tempQ)))
+        if(P[s] < .001){P[s] = .001}
+        if(P[s] > .999){P[s] = .999}
+        nll = -log(P[s]) + nll
+        pe = r - Q[s]
+        Q[s] = Q[s] + pe
+        rew[s] = r}}}
+  nll}
+```
+
+## reproval
+
+Probability rises along with interval between the subsequent choices 
+Restriction put on the value - max 11h
+termed also `reproval660`
+
+```{r}
+function(par, a) {
+    a = a[with(a, order(start)), ]
+    nll = 0
+    if (par[1] < 0 | par[1] > 1 |
+        par[2] < 0 | par[2] > 50 |
+        par[3] < 0 | par[3] > 1) {
+      nll = Inf
+    } else {
+      Q = c(0, 0)
+      P <- vector()
+      b0 = 0
+      rewards = a$dooropened
+      sides = ceiling(a$corner / 2)
+      previous = lag(sides)
+      previous[1] = 1
+      intervals = a$intervalb
+      intervals[1] = 0
+      for (i in seq_along(sides)) {
+        r = rewards[i]
+        s = sides[i]
+        w = previous[i]
+        t = intervals[i]
+        if (is.finite(s) & is.finite(r)) { 
+          P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+          b0 = log(P[w] / (1 - P[w]))
+          if(t > 660) t = 660
+          P[w] = exp(b0 + par[3] * t) / 
+            (1 + exp(b0 + par[3] * t))
+          P[-w] = 1 - P[w]
+          if(any(P < .001)){
+            index = which(P < .001)
+            P[index] = .001; P[-(index)] = .999}
+          nll = -log(P[s]) + nll
+          pe = r - Q[s] 
+          Q[s] = Q[s] + (par[1] * pe)}}}
+    nll}
+```
+
+## random
+
+Probability of each choice set as indifference point 0.5
+
+```{r, eval = F}
+dmodel %>%
+  group_by(tag) %>%
+  summarise(n = length(which(is.finite(corner)&is.finite(dooropened)))) %>%
+  mutate(name = name, aic = calculateAIC(0, n * -log(0.5)))}
+```
+
+## bandit-4-arm
+
+Applied on sequence of all visits. Water corners reward value equals 0.5
+
+`{r} dataset: dmodel4arm`
+
+```{r}
+ function(par, a) {
+    a = a[with(a, order(start)), ]
+    nll = 0
+    if (par[1] < 0 | par[1] > 1 |
+        par[2] < 0 | par[2] > 50) {
+      nll = Inf
+    } else {
+      Q = c(0, 0, 0, 0)
+      P <- vector()
+      rewards = a$dooropened
+      sides = a$corner
+      for (i in seq_along(sides)) {
+        r = rewards[i]
+        s = sides[i]
+        if (is.finite(s) & is.finite(r)) {
+          P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+          if(P[s] < .001){P[s] = .001}
+          if(P[s] > .999){P[s] = .999}
+          nll = -log(P[s]) + nll
+          pe = r - Q[s]
+          Q[s] = Q[s] + (par[1] * pe)}}}
+    nll}
+```
+
+***
+
+# Remarks {.tabset .tabset-fade}
+
+## data
+
+```{r echo = F, eval = TRUE}
+dmodel %>%
+  mutate(tag = as.character(tag)) %>%
+  dplyr::left_join(select(manimal, tag, substance), by = "tag") %>%
+  dplyr::group_by(exp, substance) %>%
+  summarise(n.animal = length(unique(tag)),
+            start = start[1],
+            end = end[n()])
+```
+
+## initials
+
+initials set:
+
+```{r} initials.beta = seq(0.25, 15, by = 0.50)```
+
+```{r} initials.default = seq(0.05, 1, by = 0.05)```
+
+which differs from the original values. The new grid is a bit sparser.
+
+```{r eval = TRUE, echo = FALSE, fig.height=7, fig.width=6}
+(expand.grid(
+  alpha = seq(0.05, 1, by = 0.05),
+  beta = seq(0.25, 15, by = 0.25)) %>%
+  ggplot(aes(x = alpha, y = beta))+
+  geom_point()+
+  scale_y_continuous(limits = c(0,50))+
+  labs(caption = "original")) + 
+  (expand.grid(
+  alpha = seq(0.05, 1, by = 0.05),
+  beta = seq(0.25, 15, by = 0.50)) %>%
+  ggplot(aes(x = alpha, y = beta))+
+  geom_point()+
+  scale_y_continuous(limits = c(0,50))+
+  labs(caption = "new, used here")) 
+```
