@@ -25,16 +25,13 @@ aictidy <- rmodel %>%
                filter(is.finite(dooropened) & is.finite(corner)) %>%
                group_by(tag) %>%
                summarise(ntrial = n())), 
-            by = "tag") %>%
-  mutate(`aic/trial` = aic / ntrial)
+            by = "tag")
 
 # plot --------------------------------------------------------------------
 fig$deltaaic <- 
   aictidy %>%
-  #filter(name != "basic4arm") %>%
   ggplot(aes(x = name, y = delta, fill = name, colour = name)) +
   geom_hline(yintercept = 0)+
-  #geom_violin(alpha = .3)+
   geom_boxplot(
     outlier.colour = NA,
     alpha = .5,
@@ -181,3 +178,9 @@ dmodel %>%
   theme(legend.position = "none")+
   scale_y_continuous(limits = c(0,120), expand = c(0,0))+
   scale_x_continuous(limits = c(0, 200), expand = c(0,0))
+
+
+# check for outliers ------------------------------------------------------
+
+with(dmodel, {table(tag, contingency)})
+

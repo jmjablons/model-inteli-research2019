@@ -1,7 +1,7 @@
 
 # substance preference ----------------------------------------------------
 getPreference <- function(n.hours = 96, period.info = "adaptation", a = dall){
-  criteria <- a %>%
+  period <- a %>%
     filter(info == period.info) %>%
     group_by(exp, info) %>%
     arrange(start, .by_group = T) %>%
@@ -10,85 +10,63 @@ getPreference <- function(n.hours = 96, period.info = "adaptation", a = dall){
     ungroup()
   a %>%
     group_by(exp, info) %>%
-    filter(start > criteria$begin[match(exp, criteria$exp)] & 
-             end < criteria$finish[match(exp, criteria$exp)], 
+    filter(start > period$begin[match(exp, period$exp)] & 
+             end < period$finish[match(exp, period$exp)], 
            .preserve = TRUE) %>%
   group_by(tag) %>%
   summarise(
-    nLickWater = sum(nlick[which(rp == 0)], na.rm = TRUE),
-    nLickGood = sum(nlick[which(rp > 0)], na.rm = TRUE),
-    lickpreference = nLickGood / (nLickGood + nLickWater))}
+    nlickwater = sum(nlick[which(rp == 0)], na.rm = TRUE),
+    nlickreward = sum(nlick[which(rp > 0)], na.rm = TRUE),
+    value = nlickreward / (nlickreward + nlickwater))}
 
-# substance preference stat -----------------------------------------------
-
-substances <- unique(rPreference$substance)
-
-## variance between groups
-kruskal.test(data = rPreference, lickpreference ~ substance)$p.value %>%
-  format(scientific = F, digits = 3)
-FSA::dunnTest(data = rPreference, lickpreference ~ substance, method="bh")
-
-## greater than random
-for(substance in substances) {
-  with(rPreference, {
-    print(c(substance, 
-            wilcox.test(lickpreference[substance == substance], 
-                        mu = 0.5, alternative = 'greater')$p.value %>%
-              format(scientific = F, digits = 3)))})}
-
-## size effect
-{tsub = 'saccharin'; tref = 'water'
-with(rPreference, {
-  effsize::cohen.d(
-    lickpreference[substance == tsub], 
-    lickpreference[substance == tref])})}
-
-# for(substance in substances) {
-#   for(s in substances){
-#     cat(paste0('\n','\n','###','\t',substance,'\t',s,'\n'))
-#     with(rPreference, {
-#       print(effsize::cohen.d(lickpreference[substance == substance],
-#                              lickpreference[substance == s]))})}}
+result$preference <- getPreference()
 
 # better ratio ------------------------------------------------------------
-rBetterRatio <- 
+result$br <- 
   dall %>%
-  filter(label %in% c('0.9x0.3', '0.3x0.9')) %>%
+  filter(label %in% c("0x0.3x0.9")) %>%
   group_by(tag) %>%
   summarise(n = n(),
-    nBetter = length(which(rp > 0.5)),
-    nWorse = length(which(rp > 0.0 & rp < 0.5)),
-    br = nBetter / (nBetter + nWorse))
+            nbetter = length(which(rp > 0.5)),
+            nworse = length(which(rp > 0.0 & rp < 0.5)),
+            value = nbetter / (nbetter + nworse))
 
-# better ratio stat -------------------------------------------------------
+# stat --------------------------------------------------------------------
+temp <- result$preference %>%
+  left_join(manimal) %>%
+  mutate(substance = as.factor(substance))
 
-kruskal.test(br ~ substance, data = rBetterRatio)$p.value %>%
-  format(scientific = TRUE, digits = 3)
-FSA::dunnTest(br ~ substance, data = rBetterRatio, method="bh")
-##Pairwise Mann–Whitney U-tests
-# pairwise.wilcox.test(
-#   r.BetterRatio$BR, 
-#   r.BetterRatio$Substance,
-#   p.adjust.method = "BH")
+temp <- result$br %>%
+  left_join(manimal) %>%
+  mutate(substance = as.factor(substance))
 
-#Is the effect large enough?
-tsub = 'saccharin'; tref = 'water'
-with(rBetterRatio, {effsize::cohen.d(br[substance == tsub], br[substance == tref])})
+substances <- unique(temp$substance)
 
-#Is the value greater than random?
-for(s in substances) {
-  with(rBetterRatio, {
-    print(c(substance, 
-            wilcox.test(br[substance == s], mu = 0.5, alternative = 'greater')$p.value %>%
-              format(scientific = F, digits = 3)))})}
+## variance between groups
+kruskal.test(data = temp, value ~ substance)$p.value %>%
+  format(scientific = F, digits = 3)
+FSA::dunnTest(data = temp, value ~ substance, method="bh")
+
+## greater than random
+for(i in seq_along(substances)){
+  with(temp, {print(
+    wilcox.test(value[substance == substances[i]], 
+                mu = 0.5, alternative = 'greater')$p.value %>%
+      format(scientific = F, digits = 3))})}
+
+## size effect
+{tsub = 2; tref = 1
+with(temp, {effsize::cohen.d(
+    lickpreference[substance == substances[tsub]], 
+    lickpreference[substance == substances[tref]])})}
 
 # glm win-stay behaviour --------------------------------------------------
 
 getErrorRate <- 
   function(real.data, predict.data) {
     real.data = as.vector(as.logical(real.data))
-    predict.data = as.vector(prediction.data > 0.5)
-    mean(predict.data != real.data)}
+    predict.data = as.vector(predict.data > 0.5)
+    1 - mean(predict.data == real.data, na.rm = T)}
 
 modelStay <- 
   function(mouse, a = dmodel, n.divisions = 10) {
@@ -98,7 +76,7 @@ modelStay <-
                      corner = as.factor(ceiling(corner/2)),
                      dooropened = as.factor(dooropened))
     dlenght <- seq_along(dmouse$stay)
-    itest <- sample(max(dlenght), floor(max(dlenght) / n.divisions), replace = FALSE)
+    itest <- sample(max(dlenght), floor(max(dlenght) / n.divisions), FALSE)
     itrain <- setdiff(dlenght, sort(itest))
     result.glm <- glm(stay ~ dooropened + iltervala + corner, 
                       data = dmouse[itrain,], family = binomial)
@@ -114,7 +92,6 @@ modelStay <-
       mutate(tag = mouse, 
         predictor = rownames(.), 
         errorrate = getErrorRate(real.data, prediction.data),
-        # mcFaddenpR2 = pscl::pR2(object = model.greatest.mouse)['McFadden'],
         sig = ifelse(probability < 0.05, 1, 0))}
 
-modelStay <- lapply(manimal$tag, function(x) {modelStay(x)}) %>% bind_rows()
+result$glm <- lapply(manimal$tag, function(x) {modelStay(x)}) %>% bind_rows()
