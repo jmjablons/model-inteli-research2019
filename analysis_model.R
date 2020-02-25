@@ -163,7 +163,9 @@ decayfunction_matrix <- as.matrix(decayfunction) #hue hue
 plot_ly(z = decayfunction_matrix, type = "surface")
 
 
-# check for correlation ---------------------------------------------------
+# check -------------------------------------------------------------------
+
+#correlation
 with(subset(dmodel, !is.na(nlick)), {
   cor(nlick, as.numeric(visitduration), method = "pearson")})
 
@@ -171,16 +173,13 @@ dmodel %>%
   mutate(visitduration = as.numeric(visitduration)) %>%
   filter(visitduration < 120) %>%
   filter(!is.na(nlick)) %>%
+  # plot #
   ggplot(aes(x = nlick, y = visitduration, group = tag, fill = tag, colour = tag))+
   geom_point(alpha = .3)+
-  #geom_smooth(alpha = .1)+
   theme_classic()+
   theme(legend.position = "none")+
   scale_y_continuous(limits = c(0,120), expand = c(0,0))+
   scale_x_continuous(limits = c(0, 200), expand = c(0,0))
 
-
-# check for outliers ------------------------------------------------------
-
+# outlier
 with(dmodel, {table(tag, contingency)})
-

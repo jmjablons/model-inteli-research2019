@@ -5,17 +5,15 @@
 getaic <- function(n.parameters, nll) {2 * nll + 2 * n.parameters}
 listnth <- function(inp, n){sapply(inp, `[`, n)}
 
-getoptimal_ <-
-  # for one parameter !! note: no loop for animals inside
-  function(dataset, list.parameters){
+getoptimal_ <- function(dataset, list.parameters){ #one parameter
     out = c(tag = as.numeric(unique(dataset$tag)), 
-                     par = 0, value = Inf, maxPar = NA)
+            par = 0, value = Inf, maxPar = 0)
     for(i in list.parameters){
-      value = model(par = i, a = dataset)
-      out$maxPar = i
-      if(value < out$value){
-        out$par = i
-        out$value = value}}
+      value = model(i, dataset)
+      out[4] = i
+      if(value < out[3]){
+        out[2] = i
+        out[3] = value}}
     out}
 
 getoptimal <- function(input.data, list.parameters) {
@@ -682,6 +680,54 @@ model <- function(par, a) {
     mutate(name = name, tag = as.character(tag), 
            aic = getaic(length(initial), value))}
 
+# puzzlement split fictitious ---------------------------------------------
+model <- function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 1 |
+      par[2] < 0 | par[2] > 50 | 
+      par[3] < 0 | par[3] > 1 |
+      par[4] < 0 | par[4] > 1) {
+    nll = Inf
+  } else {
+    Q = c(0, 0)
+    date = rep(a$start[1], 2)
+    t = c(0, 0)
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner/2)
+    nows = a$start
+    rew = c(0,0)
+    beta.zero = par[2]
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      now = nows[i]
+      t = as.numeric(difftime(now, date, units = 'mins'))
+      date[s] = now
+      decay = ifelse(rew == 1, par[3], par[4])
+      beta = exp( -(t[s]) * decay ) * beta.zero
+      P = exp(beta * Q) / sum(exp(beta * Q))
+      if(P[s] < .001){P[s] = .001}
+      if(P[s] > .999){P[s] = .999}
+      nll = -log(P[s]) + nll
+      pe = r - Q[s]
+      Q[s] = Q[s] + (par[1] * pe)
+      Q[-s] = Q[-s] - (par[1] * pe)
+      rew[s] = r}}
+  nll}
+
+{name = "puzzlement+*"
+  initial <- expand.grid(
+    alpha = initials.default,
+    beta = initials.beta,
+    bdecay.pos = initials.primitive,
+    bdecay.neg = initials.primitive) %>%
+    as.list()
+  rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
+    mutate(name = name, tag = as.character(tag), 
+           aic = getaic(length(initial), value))}
+
 # beta down ---------------------------------------------------------------
 model <- function(par, a) {
   a = a[with(a, order(start)), ]
@@ -806,13 +852,6 @@ model <- function(par, a) {
     mutate(name = name, tag = as.character(tag), 
            aic = getaic(length(initial), value))}
 
-# random ------------------------------------------------------------------
-{name = "zero"
-rmodel[[name]] <- dmodel %>%
-  group_by(tag) %>%
-  summarise(n = length(which(is.finite(corner)&is.finite(dooropened)))) %>%
-  mutate(name = name, aic = calculateAIC(0, n * -log(0.5)))}
-
 # bandit4arm --------------------------------------------------------------
 model <- function(par, a) {
   a = a[with(a, order(start)), ]
@@ -873,9 +912,12 @@ model <-
         nll = -log(P[k]) + nll}}
     nll}
 
+
+
 {name = "noisywinstay"
-  initial <- c(epsilon = seq(0.001, 1.999, 0.1))
-  rmodel[[name]] <- (function(initials, a = dmodel) {
+  initial <- seq(0.001, 1.999, 0.001)
+  rmodel[[name]] <- 
+    temp <-(function(initials, a = dmodel) {
     tags = as.character(levels(as.factor(a$tag)))
     progressbar <- txtProgressBar(0, length(tags), char = '*', style = 3)
     output = list()
@@ -918,9 +960,16 @@ model <- function(par, a) {
 
 {name = "noisywinstay+"
   initial <- expand.grid(
-    epsilonshort = seq(0.001, 1.9, 0.1),
-    epsilonlong = seq(0.001, 1.9, 0.1)) %>%
+    epsilonshort = seq(0.001, 1.999, 0.01),
+    epsilonlong = seq(0.001, 1.999, 0.01)) %>%
     as.list()
   rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
     mutate(name = name, tag = as.character(tag), 
            aic = getaic(length(initial), value))}
+
+# random ------------------------------------------------------------------
+{name = "zero"
+rmodel[[name]] <- dmodel %>%
+  group_by(tag) %>%
+  summarise(n = length(which(is.finite(corner)&is.finite(dooropened)))) %>%
+  mutate(name = name, aic = getaic(0, n * -log(0.5)))}
