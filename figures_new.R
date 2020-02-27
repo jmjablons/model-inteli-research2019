@@ -16,8 +16,11 @@ binal <- function(input, how.long = "2 days", hour = 1, allow.group = T) {
               by = how.long)),labels = FALSE)} 
     input}
 
-plotpar <- function(modelname, arg = 'par', include = TRUE,
-                      dat = rmodel, metadata = manimal, gg.further = NULL){
+plotpar <- function(modelname, arg = 'par', 
+                    gg.limits = c(0,1), gg.breaks = c(0,1), 
+                    include = TRUE,
+                    dat = rmodel, metadata = manimal, 
+                    gg.further = theme_publication){
   if(include){fn = function(pat, x) (grepl(pat, x))
   } else {fn = function(pat, x) !grepl(pat, x)}
   dat[[modelname]] %>%
@@ -26,7 +29,14 @@ plotpar <- function(modelname, arg = 'par', include = TRUE,
     filter(fn(arg, par)) %>%
     left_join(metadata, by = "tag") %>%
     ggplot(aes(x = substance, y = as.numeric(value))) +
-    geom_boxplot() + facet_wrap(~par, scales = "free_y") + gg.further}
+    box_default + median_default + point_default +
+    facet_wrap(~par, scales = "free_y") + 
+    scale_y_continuous(limits = gg.limits, expand = c(0,0), 
+                       breaks = gg.breaks) + gg.further +
+    theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.ticks.x = element_blank())}
 
 
 # util --------------------------------------------------------------------
@@ -62,7 +72,7 @@ gg$stay.value = log(c(0.03, 1, 10, 60, 660))
 # fig 2 -------------------------------------------------------------------
 
 #number of visits
-dall %>% 
+fig[[2]] <- dall %>% 
   binal() %>%
   filter(info != "finish") %>%
   mutate(info = ifelse(info %in% "welcome", "adaptation", info)) %>%
@@ -133,8 +143,8 @@ p3 <- result$br %>%
     axis.ticks.x = element_blank(),
     axis.line.x = element_blank())
 
-(p1 | p2 | p3) + plot_layout(ncol = 3, widths = c(1, 1, 1)) + plot_annotation(tag_levels = "A")
-
+fig[[3]] <- (p1 | p2 | p3) + plot_layout(ncol = 3, widths = c(1, 1, 1)) + 
+  plot_annotation(tag_levels = "A")
 
 # fig 4 -------------------------------------------------------------------
 
@@ -181,7 +191,7 @@ p2 <- dmodel %>%
         axis.line.y = element_blank(),
         axis.text.y = element_text(face = 'bold'))
 
-(p1 | p2) + plot_annotation(tag_levels = "A")
+fig[[4]] <- (p1 | p2) + plot_annotation(tag_levels = "A")
 
 
 # fig 5 -------------------------------------------------------------------
@@ -195,7 +205,7 @@ temp <- {theme_publication +
           axis.ticks.y = element_line(linetype = 'dashed'),
           axis.line.x = element_blank())}
 
-p1 <- result$glm %>%
+p1 <- result$glm2 %>%
   filter(grepl("intercept", predictor, ignore.case = T)) %>%
   filter(sig == 1) %>%
   left_join(manimal) %>%
@@ -205,7 +215,7 @@ p1 <- result$glm %>%
   scale_y_continuous(limits = c(-4, 2), expand = c(0, 0), breaks = c(-4, -2, 0, 2)) +
   facet_wrap(~predictor, scales = "free_y") + temp
 
-p2 <- result$glm %>%
+p2 <- result$glm2 %>%
   filter(grepl("door", predictor, ignore.case = T)) %>%
   filter(sig == 1) %>%
   left_join(manimal) %>%
@@ -215,64 +225,265 @@ p2 <- result$glm %>%
   scale_y_continuous(limits = c(-1, 1), expand = c(0, 0), breaks = c(-1, 0, 1)) +
   facet_wrap(~predictor, scales = "free_y") + temp
 
-p3 <- result$glm %>%
-  filter(grepl("iltervala", predictor, ignore.case = T)) %>%
+p3 <- result$glm2 %>%
+  filter(grepl("intervala", predictor, ignore.case = T)) %>%
   filter(sig == 1) %>%
   left_join(manimal) %>%
-  ggplot(aes(x = substance, y = estimate, group = substance, colour = sig)) +
-  box_default + median_default + point_default +
-  geom_hline(yintercept = 0, linetype = "dotted")+
-  scale_y_continuous(limits = c(0, .01), expand = c(0, 0), breaks = c(.001, .005, .01)) +
+  ggplot(aes(x = substance, y = estimate, group = substance, 
+             colour = sig)) + box_default + median_default + 
+  point_default + geom_hline(yintercept = 0, linetype = "dotted")+
+  scale_y_continuous(limits = c(0, .01), expand = c(0, 0), 
+                     breaks = c(.001, .005, .01)) +
   facet_wrap(~predictor, scales = "free_y") + temp 
 
-p4 <- result$glm %>%
+p4 <- result$glm2 %>%
   filter(grepl("corner", predictor, ignore.case = T)) %>%
   filter(sig == 1) %>%
   left_join(manimal) %>%
-  ggplot(aes(x = substance, y = estimate, group = substance, colour = sig)) +
-  box_default + median_default + point_default +
-  geom_hline(yintercept = 0, linetype = "dotted")+
-  scale_y_continuous(limits = c(-7, 7), expand = c(0, 0), breaks = c(-7, -3, 0, 3, 7)) +
+  ggplot(aes(x = substance, y = estimate, group = substance, 
+             colour = sig)) + box_default + median_default + 
+  point_default + geom_hline(yintercept = 0, linetype = "dotted")+
+  scale_y_continuous(limits = c(-7, 7), expand = c(0, 0), 
+                     breaks = c(-7, -3, 0, 3, 7)) +
   facet_wrap(~predictor, scales = "free_y") + temp
 
-( p1 | p2 | p3 | p4 ) + plot_layout() + plot_annotation(tag_levels = "A")
+p5 <- result$glm2 %>%
+  select(tag, estimate = deltafold) %>% distinct() %>% 
+  left_join(manimal) %>%
+  ggplot(aes(x = substance, y = estimate, group = substance)) +
+  box_default + median_default + point_default +
+  geom_hline(yintercept = 0, linetype = "dotted")+
+  scale_y_continuous(limits = c(0, 1), expand = c(0, 0), 
+                     breaks = c(0, 1)) + temp
 
-
-# fig 5 -------------------------------------------------------------------
-
-tLimitBeta <- 10
-
-pOptimBasic <- oBasic %>%
-  filter(beta <= tLimitBeta) %>%
-  ggplot(aes(alpha, beta, z = nll)) +
-  geom_raster(aes(fill = nll)) +
-  geom_contour(colour = 'black', binwidth = 200) +
-  theme_publication +
-  theme(legend.position = "bottom") +
-  scale_x_continuous(breaks = c(0, 0.5, 1), limits = c(0, 1), expand = c(0, 0)) +
-  scale_y_continuous(breaks = c(0, 2, 10, 20), limits = c(0, NA), expand = c(0, 0)) +
-  geom_point(data = filter(oBasic, min == T), colour = "red", shape = 8) +
-  scale_fill_gradient(low = "white", high = "black", limits = c(
-    oTime %>% filter(beta <= tLimitBeta) %>% summarise(min(nll)) %>% unlist(),
-    oBasic %>% filter(beta <= tLimitBeta) %>% summarise(max(nll)) %>% unlist())) + 
-  coord_flip()
+fig[[5]] <- ( p1 | p2 | p3 | p4 | p5) + plot_layout() + 
+  plot_annotation(tag_levels = "A")
 
 
 # fig 6 -------------------------------------------------------------------
 
+util_getoptimpoint <- function(name, limit.beta = 10, 
+                               substances = "saccharin", 
+                               metadata = manimal){
+  rmodel[[name]] %>% left_join(metadata) %>% 
+    filter(substance %in% substances) %>% 
+    filter(par.beta < limit.beta) %>% 
+    rename(alpha = par.alpha, beta = par.beta) %>% 
+    mutate(dot = 1, average = as.double(NA))}
 
+util_getavsurface <- function(obj){
+  obj = bind_rows(obj) %>% as_tibble()
+  obj2 = obj %>% tidyr::spread(tag, nll)
+  obj2$average <- apply(obj2, 1, function(x){mean(x[3:length(x)])})
+  obj2 = obj2 %>% select(alpha, beta, average) 
+  where.dot <- obj %>% group_by(tag) %>% 
+    mutate(dot = ifelse(nll == min(nll), 1L, 0L)) %>% ungroup() %>% 
+    unique() %>% filter(dot > 0)
+  left_join(obj2, select(where.dot, alpha, beta, dot), 
+            by = c("alpha","beta"))}
+
+# temp <- surfacebasic %>% bind_rows()
+# temp <- temp[temp$beta <= 10,]
+# temp$nll %>% range()
+#gg$optimpoint <- util_getoptimpoint("fictitious")
+gg$limit.nll <- c(10, 3500)
+
+name <- "basic"
+p1 <- util_getavsurface(surfacebasic) %>% 
+  ggplot(aes(alpha, beta, z = average)) +
+  geom_raster(aes(fill = average)) +
+  geom_contour(colour = 'white', binwidth = 100) +
+  theme_publication +
+  theme(legend.position = "bottom") +
+  geom_point(data = function(x) {filter(x, dot == 1)}, colour = "black", shape = 21)+
+  geom_point(data = filter(util_getoptimpoint(name = name), dot == 1), 
+             colour = "black", shape = 4)+
+  scale_x_continuous(breaks = c(0, 0.5, 1), limits = c(0, 1), expand = c(0, 0))+
+  scale_y_continuous(breaks = c(0, 1, 5, 10), limits = c(0, NA), expand = c(0, 0)) +
+  scale_fill_gradientn(colours = c("white", "black"),
+                       limits = gg$limit.nll) +
+  coord_flip()
+
+name <- "fictitious"
+p2 <- util_getavsurface(surfacefictitious) %>% 
+  ggplot(aes(alpha, beta, z = average)) +
+  geom_raster(aes(fill = average)) +
+  geom_contour(colour = 'white', binwidth = 100) +
+  theme_publication +
+  theme(legend.position = "bottom") +
+  geom_point(data = function(x) {filter(x, dot == 1)}, colour = "black", shape = 21)+
+  geom_point(data = filter(util_getoptimpoint(name = name), dot == 1), 
+             colour = "black", shape = 4)+
+  scale_x_continuous(breaks = c(0, 0.5, 1), limits = c(0, 1), expand = c(0, 0))+
+  scale_y_continuous(breaks = c(0, 1, 5, 10), limits = c(0, NA), expand = c(0, 0)) +
+  scale_fill_gradientn(colours = c("white", "black"), 
+                       limits = gg$limit.nll) +
+  coord_flip()
+
+fig[[6]] <- p1 + p2 + plot_annotation(tag_levels = "A")
+
+# scale_fill_gradientn( trans = "log10",
+#TODO limits = gg$limit.nll
+
+# fig 7 -------------------------------------------------------------------
+
+# general
+p1 <- aictidy %>%
+  filter(name %in% c(
+    "zero", "basic", "dual", "fictitious", "hybrid", "noisywinstay", 
+    "forgetful", "basic4arm", "noisywinstay+", "attention", "attention+"
+  )) %>%
+  ggplot(aes(x = name, y = delta, fill = name)) +
+  box_default + median_default + point_default +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  theme_publication +
+  labs(x = element_blank()) +
+  theme(panel.spacing = unit(2, "lines"),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.ticks.y = element_line(linetype = 'dashed'),
+        axis.line.x = element_blank(),
+        legend.position = "none") +
+  facet_wrap(~ substance, ncol = 1)+
+  scale_y_continuous(trans = 'asinh', breaks = c(-12^(1:10), 12^(1:10)),
+                     labels = as.character(c((-10:-1), (1:10))))
+
+#time-dependent
+p2 <- aictidy %>%
+  filter(name %in% c(
+    "decay", "reproval", "decay+","decay++","decay*",
+    "puzzlement", "puzzlement+","puzzlement*" 
+  )) %>%
+  ggplot(aes(x = name, y = delta, fill = name)) +
+  box_default + median_default + point_default +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  theme_publication +
+  labs(x = element_blank()) +
+  theme(panel.spacing = unit(2, "lines"),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.ticks.y = element_line(linetype = 'dashed'),
+        axis.line.x = element_blank(),
+        legend.position = "none") +
+  facet_wrap(~ substance, ncol = 1)+
+  scale_y_continuous(trans = 'asinh', breaks = c(-12^(1:10), 12^(1:10)),
+                     labels = as.character(c((-10:-1), (1:10))))
+
+#bdecay
+p3 <- aictidy %>%
+  filter(name %in% c(
+    "betadown","betadown-","betadown_"
+  )) %>%
+  ggplot(aes(x = name, y = delta, fill = name)) +
+  box_default + median_default + point_default +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  theme_publication +
+  labs(x = element_blank()) +
+  theme(panel.spacing = unit(2, "lines"),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.ticks.y = element_line(linetype = 'dashed'),
+        axis.line.x = element_blank(),
+        legend.position = "none") +
+  facet_wrap(~ substance, ncol = 1)+
+  scale_y_continuous(trans = 'asinh', breaks = c(-12^(1:10), 12^(1:10)),
+                     labels = as.character(c((-10:-1), (1:10))))
+
+fig[[7]] <- (p1 | p2 | p3) + plot_layout(ncol = 3, widths = c(1, 1, 1)) + 
+  plot_annotation(tag_levels = "A")
+
+# fig 8 -------------------------------------------------------------------
+# parameters
+gg$show.beta <- c(0, 5, 10, 25, 50) 
+
+util_signif <- function(x.where, y.where, y.space = 0.1, 
+                        colour = "darkgray"){
+  list(annotate(geom = "line", x = x.where, y = y.where, colour = colour),
+    annotate(geom = "text", label = "*", x = mean(x.where), 
+             y = y.where + y.space, colour = colour))}
+
+
+
+fig[[8]] <- ((plotpar("basic", "beta", c(0,50), gg$show.beta) +
+    util_signif(c(1,4), 49)+
+    util_signif(c(3,4), 45) | 
+    plotpar("basic", "alpha", c(0,1), c(0, .5, 1)) 
+) / (
+  plotpar("fictitious", "beta", c(0,50), gg$show.beta) +
+    util_signif(c(1,2),47)+
+    util_signif(c(1,4), 49)+
+    util_signif(c(2,4), 48) | 
+    plotpar("fictitious", "alpha", c(0,1), c(0, .5, 1)) + 
+    util_signif(c(1,2), .95)+
+    util_signif(c(1,3), .9, colour = "green")
+) / (
+  plotpar("puzzlement", "beta", c(0,50), gg$show.beta)+
+    util_signif(c(1,4), 49)+
+    util_signif(c(3,4), 48) |
+    plotpar("puzzlement", "bdecay", c(0,.1), c(0, .1))+
+    util_signif(c(1,2), .07, colour = "green")+
+    util_signif(c(1,3), .08) |
+    plotpar("puzzlement", "alpha", c(0,1), c(0, .5, 1))
+)) + plot_annotation(tag_levels = "A")
+
+# fig 9 -------------------------------------------------------------------
+
+dhero <- dmodel[dmodel$tag == hero,] 
+
+dhero %>% dplyr::group_by(contingency, corner, rp) %>% 
+  dplyr::summarise(start = min(start), end = max(end)) %>% 
+  dplyr::group_by(contingency) %>% 
+  dplyr::mutate(start = min(start), end = max(end), 
+                duration = difftime(end, start, units = "hours") %>% 
+                  round(digits = 0)) %>% dplyr::ungroup() %>% 
+  tidyr::spread(corner, rp)
+
+dhero = dhero %>% filter(contingency == 17)
+
+temp <- (function(par, a) {
+  nll = 0
+  a = a[with(a, order(start)), ]
+  Q = c(0, 0)
+  date = rep(a$start[1], 2)
+  t = c(0, 0)
+  P <- vector()
+  rewards = a$dooropened
+  sides = ceiling(a$corner/2)
+  nows = a$start
+  beta.zero = par[2]
+  output <- list()
+  prob = c()
+  nlls = c()
+  for (i in seq_along(sides)) {
+    r = rewards[i]
+    s = sides[i]
+    now = nows[i]
+    t = as.numeric(difftime(now, date, units = 'mins'))
+    date[s] = now
+    beta = exp( -(t[s]) * par[3] ) * beta.zero
+    P = exp(beta * Q) / sum(exp(beta * Q))
+    if(P[s] < .001){P[s] = .001}
+    if(P[s] > .999){P[s] = .999}
+    nll = -log(P[s]) + nll
+    pe = r - Q[s]
+    Q[s] = Q[s] + (par[1] * pe)
+    prob[i] <- P[s]
+    nlls[i] <- nll}
+  tibble(choice = lead(sides), reward = lead(rewards), 
+         time = lead(nows), probability = prob, like = nlls)})(
+           rmodel[["puzzlement"]] %>% filter(tag == hero) %>%
+             select(grep("par", names(.))) %>% unlist(),
+           dhero)
+
+temp %>%
+  ggplot(aes(x = time, y = probability))+
+  geom_point(aes(y = choice-1))+
+  geom_line(aes(y = choice-1))+
+  geom_line(colour = "blue")+
+  theme_publication
 
 # notebook ----------------------------------------------------------------
 
-  #stat_summary(geom = "crossbar", fun.y = "median")+
-  #geom_violin(fill = "gray", colour = NA)+
-  #geom_boxplot(alpha = 0.3, outlier.colour = NA) +
-  
-geom_signif(
-  y_position=c(0.9,0.9,0.9), 
-  xmin=c(1,2,4), 
-  xmax=c(2,2,2),
-  annotation=c('','*',''), 
-  textsize = 2 * ggplot2:::.pt, 
-  tip_length=0.02, 
-  vjust = 0.6)
+#stat_summary(geom = "crossbar", fun.y = "median")+
+#geom_violin(fill = "gray", colour = NA)+
+#geom_boxplot(alpha = 0.3, outlier.colour = NA) +
+#   annotation=c('','*',''), 
+#   textsize = 2 * ggplot2:::.pt, 
+#   tip_length=0.02, 

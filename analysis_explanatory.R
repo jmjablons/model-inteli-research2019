@@ -1,4 +1,9 @@
 
+
+# dependency --------------------------------------------------------------
+library(boot)
+
+
 # substance preference ----------------------------------------------------
 getPreference <- function(n.hours = 96, period.info = "adaptation", a = dall){
   period <- a %>%
@@ -32,6 +37,8 @@ result$br <-
             value = nbetter / (nbetter + nworse))
 
 # stat --------------------------------------------------------------------
+substances <- unique(temp$substance) %>%
+
 temp <- result$preference %>%
   left_join(manimal) %>%
   mutate(substance = as.factor(substance))
@@ -40,7 +47,10 @@ temp <- result$br %>%
   left_join(manimal) %>%
   mutate(substance = as.factor(substance))
 
-substances <- unique(temp$substance)
+temp <- rmodel[["puzzlement"]] %>%
+  left_join(manimal) %>%
+  mutate(substance = as.factor(substance),
+         value = par.bdecay)
 
 ## variance between groups
 kruskal.test(data = temp, value ~ substance)$p.value %>%
@@ -62,36 +72,59 @@ with(temp, {effsize::cohen.d(
 
 # glm win-stay behaviour --------------------------------------------------
 
-getErrorRate <- 
-  function(real.data, predict.data) {
+getErrorRate <- function(real.data, predict.data) {
     real.data = as.vector(as.logical(real.data))
     predict.data = as.vector(predict.data > 0.5)
     1 - mean(predict.data == real.data, na.rm = T)}
 
-modelStay <- 
-  function(mouse, a = dmodel, n.divisions = 10) {
-    set.seed(123)
-    dmouse <- a[a$tag == mouse,]
-    dmouse <- mutate(dmouse, 
-                     corner = as.factor(ceiling(corner/2)),
-                     dooropened = as.factor(dooropened))
-    dlenght <- seq_along(dmouse$stay)
-    itest <- sample(max(dlenght), floor(max(dlenght) / n.divisions), FALSE)
-    itrain <- setdiff(dlenght, sort(itest))
-    result.glm <- glm(stay ~ dooropened + iltervala + corner, 
-                      data = dmouse[itrain,], family = binomial)
-    prediction.data <- predict(result.glm, dmouse[itest,], type = "response")
-    real.data <- dmouse$stay[itest]
-    result.glm %>%
-      summary() %>%
-      .$coefficients %>%
-      transform(oddsratio = exp(Estimate)) %>%
-      rename(estimate = Estimate,
-             stderror = Std..Error,
-             probability = Pr...z..) %>%
-      mutate(tag = mouse, 
-        predictor = rownames(.), 
-        errorrate = getErrorRate(real.data, prediction.data),
-        sig = ifelse(probability < 0.05, 1, 0))}
+modelStay <- function(mouse, a = dmodel, n.divisions = 10) {
+  set.seed(123)
+  dmouse <- a[a$tag == mouse,] %>% filter(!is.na(stay) & !is.na(intervala))
+  dmouse <- mutate(dmouse, corner = as.factor(ceiling(corner/2)),
+                   dooropened = as.factor(dooropened))
+  dlenght <- seq_along(dmouse$stay)
+  itest <- sample(max(dlenght), floor(max(dlenght) / n.divisions), FALSE)
+  itrain <- setdiff(dlenght, sort(itest))
+  result.glm <- glm(stay ~ dooropened + intervala + corner, 
+                    data = dmouse[train,], family = binomial)
+  prediction.data <- predict(result.glm, dmouse[itest,], type = "response")
+  real.data <- dmouse$stay[itest]
+  result.glm %>%
+    summary() %>%
+    .$coefficients %>%
+    transform(oddsratio = exp(Estimate)) %>%
+    rename(estimate = Estimate,
+           stderror = Std..Error,
+           probability = Pr...z..) %>%
+    mutate(tag = mouse, 
+           predictor = rownames(.),
+           errorrate = getErrorRate(real.data, prediction.data),
+           sig = ifelse(probability < 0.05, 1, 0))}
 
-result$glm <- lapply(manimal$tag, function(x) {modelStay(x)}) %>% bind_rows()
+modelStay2 <- function(mouse, a = dmodel, k.fold = 10) {
+  # k.fold = nrow(nodal) for LOOCV
+  set.seed(123)
+  dmouse <- a[a$tag == mouse,] %>% filter(!is.na(stay) & !is.na(intervala))
+  dmouse <- mutate(dmouse, corner = ceiling(corner/2),
+                   dooropened = dooropened)
+  dmouse = dmouse %>% select(stay, corner, dooropened, intervala)
+  result.glm <- glm(stay ~ dooropened + intervala + corner, 
+                    data = dmouse, family = binomial)
+  errorcv <- boot::cv.glm(data = dmouse, glmfit = result.glm,
+                          cost = function(r, pi = 0) {mean(abs(r-pi) > 0.5)},
+                          K = k.fold)$delta
+  result.glm %>%
+    summary() %>%
+    .$coefficients %>%
+    transform(oddsratio = exp(Estimate)) %>%
+    rename(estimate = Estimate,
+           stderror = Std..Error,
+           probability = Pr...z..) %>%
+    mutate(tag = mouse, 
+           predictor = rownames(.),
+           deltafold = errorcv[1],
+           deltafoldadj = errorcv[2],
+           sig = ifelse(probability < 0.05, 1, 0))}
+
+
+result$glm2 <- lapply(manimal$tag, function(x) {modelStay2(x)}) %>% bind_rows()
