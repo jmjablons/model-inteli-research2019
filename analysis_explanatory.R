@@ -47,10 +47,10 @@ temp <- result$br %>%
   left_join(manimal) %>%
   mutate(substance = as.factor(substance))
 
-temp <- rmodel[["puzzlement"]] %>%
+temp <- rmodel[["puzzlement*"]] %>%
   left_join(manimal) %>%
   mutate(substance = as.factor(substance),
-         value = par.bdecay)
+         value = par.alpha)
 
 ## variance between groups
 kruskal.test(data = temp, value ~ substance)$p.value %>%

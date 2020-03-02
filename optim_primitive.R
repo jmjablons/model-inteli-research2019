@@ -1,24 +1,6 @@
-# Sys.time()
-# surface <- list(rep(NA, 505101))
-# sapply(manimal$tag, function(m){
-#   dmouse = dmodel[dmodel$tag == m,]
-#   tag = as.numeric(unique(dmouse$tag))
-#   par1 = -0.01
-#   i = 0
-#   while(par1 < 1){
-#     par1 = par1 + 0.01
-#     par2 = -0.01
-#     while(par2 < 50){
-#       par2 = par2 + 0.01
-#       i = i + 1
-#       nll = model(c(alpha = par1, beta = par2), dmouse)
-#       surface[[i]] <- c(tag = tag, alpha = par1, beta = par2, value = nll)}}})
-# Sys.time()
-## noep. see: r inferno
-
 # custom ------------------------------------------------------------------
 
-optimraw <- function(tags = with(manimal, {tag[substance == "saccharin"]}), 
+optimraw <- function(tags = manimal$tag, 
                      a = dmodel, 
                      grid = expand.grid(alpha = seq(0, 1, 0.01), 
                                         beta = seq(0,10, 0.1), 

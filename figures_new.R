@@ -70,10 +70,10 @@ gg <- list()
 gg$point.width = 0.1
 gg$point.alpha = 1
 gg$point.size = 2
-gg$point.colour = "darkgray"
+gg$point.colour = "black"
 gg$fill.box = "lightgray"
-gg$colour.median = "gray"
-gg$outline.box = "darkgray"
+gg$colour.median = "black"
+gg$outline.box = NA
 gg$ribbon.fill = "lightgray"
 gg$ribbon.colour = NA
 
@@ -211,112 +211,55 @@ fig[[4]] <- (p1 | p2) / (p3 | p4) + plot_annotation(tag_levels = "A")
 # fig 5 win stay ----------------------------------------------------------
 #win-stay lose-shift
 
-p1 <- dmodel %>%
-  left_join(manimal, by = "tag") %>%
-  filter(substance %in% "alcohol") %>%
-  filter(intervalb <= 2 | intervalb >= 10) %>%
-  mutate(short = ifelse(intervalb <= 2, "[<2]", "[>10]")) %>%
-  group_by(tag, short) %>%
-  summarise(winstay = length(which(dooropened == 1 & stay == 1))/ 
-              length(which(dooropened == 1)),
-            loseshift = length(which(dooropened == 0 & stay == 0))/
-              length(which(dooropened == 0))) %>%
-  tidyr::gather(param, value, -tag, -short) %>%
-  mutate(param = factor(param, levels = c("winstay", "loseshift"), 
-                        ordered = T)) %>%
-  left_join(manimal) %>%
-  ggplot(aes(x = interaction(short, param, sep = " ", lex.order = F), 
-             y = value)) + point_default + 
-  geom_line(aes(group = interaction(tag, param)), alpha = .4, 
-                                          colour = "darkgray") + 
-  scale_y_continuous(expand = c(0,0), limits = c(0,1), 
-                     breaks = c(0, .5, 1)) + theme_publication + 
-  theme(axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.line.x = element_blank(),
-        axis.ticks.x = element_blank())
+temp <- list(point_default, 
+             geom_line(aes(group = interaction(tag, param)), alpha = .4, 
+                       colour = "darkgray"),
+             scale_y_continuous(expand = c(0,0), limits = c(0,1), 
+                                breaks = c(0, .5, 1)), 
+             facet_wrap(~substance), theme_publication, 
+             theme(axis.title.x = element_blank(),
+                   axis.title.y = element_blank(),
+                   axis.line.x = element_blank(),
+                   axis.text.x = element_text(angle = 45, hjust = 1),
+                   axis.ticks.x = element_blank()))
 
-p2 <- dmodel %>%
-  left_join(manimal, by = "tag") %>%
-  filter(substance == "alcoholsaccharin") %>%
-  filter(intervalb <= 2 | intervalb >= 10) %>%
-  mutate(short = ifelse(intervalb <= 2, "[<2]", "[>10]")) %>%
-  group_by(tag, short) %>%
-  summarise(winstay = length(which(dooropened == 1 & stay == 1))/ 
-              length(which(dooropened == 1)),
-            loseshift = length(which(dooropened == 0 & stay == 0))/
-              length(which(dooropened == 0))) %>%
-  tidyr::gather(param, value, -tag, -short) %>%
-  mutate(param = factor(param, levels = c("winstay", "loseshift"), 
-                        ordered = T)) %>%
-  left_join(manimal) %>%
-  ggplot(aes(x = interaction(short, param, sep = " ", lex.order = F), 
-             y = value)) + point_default + 
-  geom_line(aes(group = interaction(tag, param)), alpha = .4, 
-            colour = "darkgray") + 
-  scale_y_continuous(expand = c(0,0), limits = c(0,1), 
-                     breaks = c(0, .5, 1)) + theme_publication + 
-  theme(axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.line.x = element_blank(),
-        axis.ticks.x = element_blank())
+util_winstay <- function(sb){
+  dmodel %>% left_join(manimal, by = "tag") %>%
+    filter(substance %in% sb) %>% 
+    filter(intervalb <= 2 | intervalb >= 10) %>%
+    mutate(short = ifelse(intervalb <= 2, "[<2]", "[>10]")) %>%
+    group_by(tag, short) %>%
+    summarise(winstay = length(which(dooropened == 1 & stay == 1))/ 
+                length(which(dooropened == 1)),
+              loseshift = length(which(dooropened == 0 & stay == 0))/
+                length(which(dooropened == 0))) %>%
+    tidyr::gather(param, value, -tag, -short) %>%
+    mutate(param = factor(param, levels = c("winstay", "loseshift"), 
+                          ordered = T)) %>%
+    left_join(manimal)}
 
-p3 <- dmodel %>%
-  left_join(manimal, by = "tag") %>%
-  filter(substance == "saccharin") %>%
-  filter(intervalb <= 2 | intervalb >= 10) %>%
-  mutate(short = ifelse(intervalb <= 2, "[<2]", "[>10]")) %>%
-  group_by(tag, short) %>%
-  summarise(winstay = length(which(dooropened == 1 & stay == 1))/ 
-              length(which(dooropened == 1)),
-            loseshift = length(which(dooropened == 0 & stay == 0))/
-              length(which(dooropened == 0))) %>%
-  tidyr::gather(param, value, -tag, -short) %>%
-  mutate(param = factor(param, levels = c("winstay", "loseshift"), 
-                        ordered = T)) %>%
-  left_join(manimal) %>%
+p1 <- util_winstay("alcohol") %>%
   ggplot(aes(x = interaction(short, param, sep = " ", lex.order = F), 
-             y = value)) + point_default + 
-  geom_line(aes(group = interaction(tag, param)), alpha = .4, 
-            colour = "darkgray") + 
-  scale_y_continuous(expand = c(0,0), limits = c(0,1), 
-                     breaks = c(0, .5, 1)) + theme_publication + 
-  theme(axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.line.x = element_blank(),
-        axis.ticks.x = element_blank())
+             y = value)) + temp
 
-p4 <- dmodel %>%
-  left_join(manimal, by = "tag") %>%
-  filter(substance == "water") %>%
-  filter(intervalb <= 2 | intervalb >= 10) %>%
-  mutate(short = ifelse(intervalb <= 2, "[<2]", "[>10]")) %>%
-  group_by(tag, short) %>%
-  summarise(winstay = length(which(dooropened == 1 & stay == 1))/ 
-              length(which(dooropened == 1)),
-            loseshift = length(which(dooropened == 0 & stay == 0))/
-              length(which(dooropened == 0))) %>%
-  tidyr::gather(param, value, -tag, -short) %>%
-  mutate(param = factor(param, levels = c("winstay", "loseshift"), 
-                        ordered = T)) %>%
-  left_join(manimal) %>%
+p2 <- util_winstay("alcoholsaccharin") %>%
   ggplot(aes(x = interaction(short, param, sep = " ", lex.order = F), 
-             y = value)) + point_default + 
-  geom_line(aes(group = interaction(tag, param)), alpha = .4, 
-            colour = "darkgray") + 
-  scale_y_continuous(expand = c(0,0), limits = c(0,1), 
-                     breaks = c(0, .5, 1)) + theme_publication + 
-  theme(axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.line.x = element_blank(),
-        axis.ticks.x = element_blank())
+             y = value)) + temp
+
+p3 <- util_winstay("saccharin") %>%
+  ggplot(aes(x = interaction(short, param, sep = " ", lex.order = F), 
+             y = value)) + temp
+
+p4 <- util_winstay("water") %>%
+  ggplot(aes(x = interaction(short, param, sep = " ", lex.order = F), 
+             y = value)) + temp
+  
 
 fig[[5]] <- (p1 | p2) / (p3 | p4) + plot_annotation(tag_levels = "A")
 
 # fig 5 -------------------------------------------------------------------
 # glm results
-temp <- {list(
-  box_default, median_default, point_default,
+temp <- {list(box_default, median_default, point_default,
   geom_hline(yintercept = 0, linetype = "dotted"),
   facet_wrap(~predictor, scales = "free_y"),
   theme_publication,
@@ -333,8 +276,8 @@ p1 <- result$glm2 %>%
   filter(sig == 1) %>%
   left_join(manimal) %>%
   ggplot(aes(x = substance, y = estimate, group = substance, colour = sig)) +
-  scale_y_continuous(limits = c(-4, 2), expand = c(0, 0), 
-                     breaks = c(-4, -2, 0, 2)) + temp
+  scale_y_continuous(limits = c(-4, 4), expand = c(0, 0), 
+                     breaks = c(-4, -2, 0, 2, 4)) + temp
 
 p2 <- result$glm2 %>%
   filter(grepl("door", predictor, ignore.case = T)) %>%
@@ -350,8 +293,8 @@ p3 <- result$glm2 %>%
   left_join(manimal) %>%
   ggplot(aes(x = substance, y = estimate, group = substance, 
              colour = sig)) + box_default + median_default + 
-  scale_y_continuous(limits = c(0, .01), expand = c(0, 0), 
-                     breaks = c(.001, .005, .01)) + temp 
+  scale_y_continuous(limits = c(-.01, .01), expand = c(0, 0), 
+                     breaks = c(-.01, 0, .01)) + temp 
 
 p4 <- result$glm2 %>%
   filter(grepl("corner", predictor, ignore.case = T)) %>%
@@ -553,9 +496,9 @@ fig[[9]] <- (
       plotpar("puzzlement", "beta", c(0,50), gg$show.beta)+
       util_signif(c(1,4), 49)+
       util_signif(c(3,4), 48) |
-      plotpar("puzzlement", "bdecay", c(0,.1), c(0, .1))+
-      util_signif(c(1,2), .07, colour = "green")+
-      util_signif(c(1,3), .08) |
+      plotpar("puzzlement", "bdecay", c(0,.2), c(0, .2))+
+      util_signif(c(1,2), .17, colour = "green")+
+      util_signif(c(1,3), .18) |
       plotpar("puzzlement", "alpha", c(0,1), c(0, .5, 1))
   )
   / 
@@ -568,9 +511,15 @@ fig[[9]] <- (
         util_signif(c(1,2), .95)+
         util_signif(c(1,3), .9, colour = "green") |
         patchwork::plot_spacer() |
-        plotpar("puzzlement*", "beta", c(0,50), gg$show.beta) |
-        plotpar("puzzlement", "bdecay", c(0,.1), c(0, .1)) |
-        plotpar("puzzlement", "alpha", c(0,1), c(0, .5, 1))
+        plotpar("puzzlement*", "beta", c(0,50), gg$show.beta)+
+        util_signif(c(1,4), 47) |
+        plotpar("puzzlement*", "bdecay", c(0,.2), c(0, .2))+
+        util_signif(c(1,4), .18)+
+        util_signif(c(3,4), .17)+
+        util_signif(c(2,3), .16, colour = "green") |
+        plotpar("puzzlement*", "alpha", c(0,1), c(0, .5, 1))+
+        util_signif(c(1,4), .9)+
+        util_signif(c(3,4), .8)
     )
 ) + plot_annotation(tag_levels = "A")
 
@@ -641,7 +590,6 @@ dummy <- (function(par, a) {
       dif = dif + lubridate::seconds(30)
       t = as.numeric(difftime(now, date + dif, units = 'mins'))
       beta = exp( -(t[s]) * par[3] ) * beta.zero
-      #P[s] = ifelse(s > 1, P[s], -P[s])
       output[[x]] <- tibble(time = dif, prob1 = P[1], prob2 = P[2], 
                             probside = P[s], probdiv = ifelse(s > 1, P[s], -P[s]))
       x = x + 1}
@@ -674,7 +622,7 @@ temp %>%
 fig[[10]]
 
 # notebook ----------------------------------------------------------------
-
+#dmodel <- readRDS(file.choose())
 #stat_summary(geom = "crossbar", fun.y = "median")+
 #geom_violin(fill = "gray", colour = NA)+
 #geom_boxplot(alpha = 0.3, outlier.colour = NA) +
