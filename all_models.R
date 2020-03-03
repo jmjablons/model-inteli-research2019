@@ -605,15 +605,14 @@ model <- function(par, a) {
     nll = Inf
   } else {
     Q = c(0, 0)
-    date = rep(a$start[1], 2)
-    t = c(0, 0)
+    date = a$start[1]
+    t = 0
     P <- vector()
     rewards = a$dooropened
     sides = ceiling(a$corner/2)
     nows = a$start
-    rew = c(0,0)
     beta.zero = par[2]
-    decay = c(0,0)
+    rew = 0
     for (i in seq_along(sides)) {
       r = rewards[i]
       s = sides[i]
@@ -621,18 +620,67 @@ model <- function(par, a) {
       t = as.numeric(difftime(now, date, units = 'mins'))
       t = ifelse(t > 660, 660, t)
       date = now
+      decay = ifelse(rew == 1, par[3], par[4])
       beta = exp( -t * decay ) * beta.zero
-      P = exp(beta[s] * Q) / sum(exp(beta[s] * Q))
+      P = exp(beta * Q) / sum(exp(beta * Q))
       if(P[s] < .001){P[s] = .001}
       if(P[s] > .999){P[s] = .999}
       nll = -log(P[s]) + nll
       pe = r - Q[s]
       Q[s] = Q[s] + (par[1] * pe)
-      decay = ifelse(rew == 1, par[3], par[4])
-      rew[s] = r}}
+      rew = r}}
   nll}
 
 {name = "puzzlement+"
+  initial <- expand.grid(
+    alpha = initials.default,
+    beta = initials.beta,
+    bdecay.pos = initials.primitive,
+    bdecay.neg = initials.primitive) %>%
+    as.list()
+  rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
+    mutate(name = name, tag = as.character(tag), 
+           aic = getaic(length(initial), value))}
+
+
+# puzzlement dual ---------------------------------------------------------
+model <- function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 1 |
+      par[2] < 0 | par[2] > 1 | 
+      par[3] < 0 | par[3] > 50 |
+      par[4] < 0 | par[4] > 1) {
+    nll = Inf
+  } else {
+    Q = c(0, 0)
+    date = a$start[1]
+    t = 0
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner/2)
+    nows = a$start
+    beta.zero = par[2]
+    rew = 0
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      now = nows[i]
+      t = as.numeric(difftime(now, date, units = 'mins'))
+      t = ifelse(t > 660, 660, t)
+      date = now
+      decay = ifelse(rew == 1, par[3], par[4])
+      beta = exp( -t * decay ) * beta.zero
+      P = exp(beta * Q) / sum(exp(beta * Q))
+      if(P[s] < .001){P[s] = .001}
+      if(P[s] > .999){P[s] = .999}
+      nll = -log(P[s]) + nll
+      pe = r - Q[s]
+      Q[s] = Q[s] + (par[1] * pe)
+      rew = r}}
+  nll}
+
+{name = "puzzlement++"
   initial <- expand.grid(
     alpha = initials.default,
     beta = initials.beta,
@@ -1053,3 +1101,54 @@ surfacepuzzlement <- (function(tags = manimal$tag, a = dmodel,
   grid[,3] <- apply(grid, 1, function(x){model(c(x[1], x[2], x[3]), dmouse)})
   grid[,4] <- m
   grid})})()
+
+
+# surprise ----------------------------------------------------------------
+
+model <- function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 1 |
+      par[2] < 0 | par[2] > 50 | 
+      par[3] < 0 | par[3] > 1 |
+      par[4] < 0 | par[4] > 1) {
+    nll = Inf
+  } else {
+    Q = c(0, 0)
+    date = rep(a$start[1], 2)
+    t = c(0, 0)
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner/2)
+    nows = a$start
+    rew = c(0,0)
+    beta.zero = par[2]
+    decay = c(0,0)
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      now = nows[i]
+      t = as.numeric(difftime(now, date, units = 'mins'))
+      t = ifelse(t > 660, 660, t)
+      date = now
+      beta = exp( -t * decay ) * beta.zero
+      P = exp(beta[s] * Q) / sum(exp(beta[s] * Q))
+      if(P[s] < .001){P[s] = .001}
+      if(P[s] > .999){P[s] = .999}
+      nll = -log(P[s]) + nll
+      pe = r - Q[s]
+      Q[s] = Q[s] + (par[1] * pe)
+      decay = ifelse(rew == 1, par[3], par[4])
+      rew[s] = r}}
+  nll}
+
+{name = "favourite"
+  initial <- expand.grid(
+    alpha = initials.default,
+    beta = initials.beta,
+    bdecay.pos = initials.primitive,
+    bdecay.neg = initials.primitive) %>%
+    as.list()
+  rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
+    mutate(name = name, tag = as.character(tag), 
+           aic = getaic(length(initial), value))}

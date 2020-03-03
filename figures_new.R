@@ -8,6 +8,7 @@ library(tidyr)
 library(lubridate)
 library(patchwork) 
 library(ggbeeswarm)
+library(scales)
 
 # custom ------------------------------------------------------------------
 
@@ -83,8 +84,10 @@ gg$stay.value = log(c(0.03, 1, 10, 60, 660))
 
 # fig 2 -------------------------------------------------------------------
 
-#number of visits
-fig[[2]] <- dall %>% 
+temp <- data.frame(exp = c(LETTERS[1:4]), 
+                   label = c(paste0("(",c("I","III","II","IV"),")")))
+
+tempdata <- dall %>% 
   binal() %>%
   filter(info != "finish") %>%
   mutate(info = ifelse(info %in% "welcome", "adaptation", info)) %>%
@@ -93,24 +96,59 @@ fig[[2]] <- dall %>%
   left_join(manimal) %>%
   group_by(period, info, exp, substance) %>%
   summarise(measure = mean(nvisit, na.rm = T),
-    sem = sem(nvisit, na.rm = T)) %>%
+            sem = sem(nvisit, na.rm = T)) %>%
   ungroup()%>%
-  mutate(gr = paste(substance, exp, sep = " ")) %>%
-  # plot #
-  ggplot(aes(x=period, y=measure)) + 
-  geom_ribbon(aes(ymin=measure-sem, ymax=measure+sem, group = gr), 
-              fill = gg$ribbon.fill, colour = gg$ribbon.colour)+ 
-  geom_point(size = gg$point.size, aes(fill = info), pch = 21, colour = gg$point.colour)+
-  geom_hline(yintercept = 200, linetype = 'dotted')+
-  scale_y_continuous(breaks=c(0, 200, 400), limits = c(0, 400), expand = c(0,0))+
-  scale_x_continuous(breaks=c(0, 15, 35), limits = c(0, 35), expand = c(0,0))+
-  ylab('Number of visits')+
-  xlab('Period of 48h')+
-  scale_fill_manual(values = c('white','darkgray'))+
-  facet_wrap(~gr, ncol = 2)+ 
-  theme_publication+
-  theme(legend.position = "bottom")
+  mutate(cohort = temp$label[match(exp, temp$exp)],
+         gr = paste(substance, cohort, sep = " "))
 
+
+dall %>% 
+  binal() %>%
+  filter(info != "finish") %>%
+  mutate(info = ifelse(info %in% "welcome", "adaptation", info)) %>%
+  group_by(period = bin, tag, info) %>% 
+  summarise(nvisit = n()) %>%
+  left_join(manimal) %>%
+  group_by(period, info, exp, substance)
+
+temp <- list(
+  geom_ribbon(aes(ymin=measure-sem, ymax=measure+sem, group = gr), 
+              fill = gg$ribbon.fill, colour = gg$ribbon.colour),
+    geom_point(size = gg$point.size, aes(fill = info), pch = 21, 
+               colour = gg$point.colour),
+    geom_hline(yintercept = 200, linetype = 'dotted'),
+    scale_y_continuous(breaks=c(0, 200, 400), limits = c(0, 400), 
+                       expand = c(0,0)),
+    scale_x_continuous(breaks=c(0, 15, 35), limits = c(0, 35), 
+                       expand = c(0,0)),
+    ylab('Number of visits in corners'),
+    xlab('Period of 48h'),
+    scale_fill_manual(values = c('white','darkgray')),
+    facet_wrap(~gr, ncol = 2),
+    theme_publication, theme(legend.position = "bottom"))
+
+
+p1 <- tempdata %>% filter(gr %in% "alcohol (I)") %>% 
+  ggplot(aes(x=period, y=measure)) + temp
+
+p2 <- tempdata %>% filter(gr %in% "alcohol (II)") %>% 
+  ggplot(aes(x=period, y=measure)) + temp
+
+p3 <- tempdata %>% filter(gr %in% "saccharin (I)") %>% 
+  ggplot(aes(x=period, y=measure)) + temp
+
+p4 <- tempdata %>% filter(gr %in% "saccharin (III)") %>% 
+  ggplot(aes(x=period, y=measure)) + temp
+
+p5 <- tempdata %>% filter(gr %in% "alcoholsaccharin (II)") %>% 
+  ggplot(aes(x=period, y=measure)) + temp
+
+p6 <- tempdata %>% filter(gr %in% "water (IV)") %>% 
+  ggplot(aes(x=period, y=measure)) + temp
+
+#number of visits
+fig[[2]] <- (p1 + p2) / (p3 + p4) / (p5 + p6) + 
+  plot_annotation(tag_levels = "A")
 
 # fig 3 -------------------------------------------------------------------
 

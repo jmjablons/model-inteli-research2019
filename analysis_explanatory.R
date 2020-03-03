@@ -37,9 +37,9 @@ result$br <-
             value = nbetter / (nbetter + nworse))
 
 # stat --------------------------------------------------------------------
-substances <- unique(temp$substance) %>%
+substances <- unique(temp$substance)
 
-temp <- result$preference %>%
+temp <- getPreference() %>%
   left_join(manimal) %>%
   mutate(substance = as.factor(substance))
 
