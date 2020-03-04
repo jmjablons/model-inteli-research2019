@@ -59,11 +59,15 @@ box_default <- stat_summary(geom = "crossbar", fill = gg$fill.box, colour = gg$o
 median_default <- stat_summary(geom = "crossbar", colour = gg$colour.median, fill = NA,
       fun.data = function(x) {data.frame(y = median(x),ymin = median(x),ymax = median(x))})
 
-point_default <- geom_quasirandom(size = gg$point.size, 
-                                  width = gg$point.width, 
-                                  colour = gg$point.colour, 
-                   alpha = gg$point.alpha, stroke = 0, shape=16, 
-                   method = "tukeyDense", varwidth = TRUE)
+point_default <- function(point.width = 0.1,
+                          point.alpha = 1,
+                          point.size = 2,
+                          point.colour = "black"){
+  geom_quasirandom(size = point.size, 
+                   width = point.width, 
+                   colour = point.colour, 
+                   alpha = point.alpha, stroke = 0, shape=16, 
+                   method = "tukeyDense", varwidth = TRUE)}
 
 # visuals -----------------------------------------------------------------
 #general visuals
@@ -88,29 +92,39 @@ temp <- data.frame(exp = c(LETTERS[1:4]),
                    label = c(paste0("(",c("I","III","II","IV"),")")))
 
 tempdata <- dall %>% 
-  binal() %>%
   filter(info != "finish") %>%
+  filter(info != "welcome") %>%
   mutate(info = ifelse(info %in% "welcome", "adaptation", info)) %>%
-  group_by(period = bin, tag, info) %>% 
+  left_join(manimal, "tag") %>%
+  mutate(exp = exp.y, 
+         cohort = temp$label[match(exp, temp$exp)],
+         gr = paste(substance, cohort, sep = " ")) %>%
+  binal()
+
+  tempdata$info[tempdata$gr %in% "alcohol (I)" & tempdata$bin == 16 & tempdata$info == "adaptation"] = 
+    rep("reversal", length(tempdata$info[tempdata$gr %in% "alcohol (I)" & tempdata$bin == 16 & tempdata$info == "adaptation"]))
+   
+  tempdata$info[tempdata$gr %in% "alcohol (II)" & tempdata$bin == 15 & tempdata$info == "adaptation"] = 
+    rep("reversal", length(tempdata$info[tempdata$gr %in% "alcohol (II)" & tempdata$bin == 15 & tempdata$info == "adaptation"]))
+  
+  tempdata$info[tempdata$gr %in% "saccharin (I)" & tempdata$bin == 16 & tempdata$info == "adaptation"] = 
+    rep("reversal", length(tempdata$info[tempdata$gr %in% "saccharin (I)" & tempdata$bin == 16 & tempdata$info == "adaptation"]))
+  
+  tempdata$info[tempdata$gr %in% "saccharin (III)" & tempdata$bin == 16 & tempdata$info == "adaptation"] = 
+    rep("reversal", length(tempdata$info[tempdata$gr %in% "saccharin (III)" & tempdata$bin == 16 & tempdata$info == "adaptation"]))
+
+  tempdata$info[tempdata$gr %in% "alcoholsaccharin (II)" & tempdata$bin == 15 & tempdata$info == "adaptation"] = 
+    rep("reversal", length(tempdata$info[tempdata$gr %in% "alcoholsaccharin (II)" & tempdata$bin == 15 & tempdata$info == "adaptation"]))
+  
+  
+tempdata = tempdata %>%
+  group_by(bin, tag, info, gr, substance) %>% 
   summarise(nvisit = n()) %>%
-  left_join(manimal) %>%
-  group_by(period, info, exp, substance) %>%
+group_by(bin, info, gr) %>%
   summarise(measure = mean(nvisit, na.rm = T),
             sem = sem(nvisit, na.rm = T)) %>%
-  ungroup()%>%
-  mutate(cohort = temp$label[match(exp, temp$exp)],
-         gr = paste(substance, cohort, sep = " "))
-
-
-dall %>% 
-  binal() %>%
-  filter(info != "finish") %>%
-  mutate(info = ifelse(info %in% "welcome", "adaptation", info)) %>%
-  group_by(period = bin, tag, info) %>% 
-  summarise(nvisit = n()) %>%
-  left_join(manimal) %>%
-  group_by(period, info, exp, substance)
-
+  ungroup()
+  
 temp <- list(
   geom_ribbon(aes(ymin=measure-sem, ymax=measure+sem, group = gr), 
               fill = gg$ribbon.fill, colour = gg$ribbon.colour),
@@ -122,29 +136,29 @@ temp <- list(
     scale_x_continuous(breaks=c(0, 15, 35), limits = c(0, 35), 
                        expand = c(0,0)),
     ylab('Number of visits in corners'),
-    xlab('Period of 48h'),
+    xlab('bin of 48h'),
     scale_fill_manual(values = c('white','darkgray')),
-    facet_wrap(~gr, ncol = 2),
+    facet_wrap(~gr),
     theme_publication, theme(legend.position = "bottom"))
 
 
 p1 <- tempdata %>% filter(gr %in% "alcohol (I)") %>% 
-  ggplot(aes(x=period, y=measure)) + temp
+  ggplot(aes(x=bin, y=measure)) + temp
 
 p2 <- tempdata %>% filter(gr %in% "alcohol (II)") %>% 
-  ggplot(aes(x=period, y=measure)) + temp
+  ggplot(aes(x=bin, y=measure)) + temp
 
 p3 <- tempdata %>% filter(gr %in% "saccharin (I)") %>% 
-  ggplot(aes(x=period, y=measure)) + temp
+  ggplot(aes(x=bin, y=measure)) + temp
 
 p4 <- tempdata %>% filter(gr %in% "saccharin (III)") %>% 
-  ggplot(aes(x=period, y=measure)) + temp
+  ggplot(aes(x=bin, y=measure)) + temp
 
 p5 <- tempdata %>% filter(gr %in% "alcoholsaccharin (II)") %>% 
-  ggplot(aes(x=period, y=measure)) + temp
+  ggplot(aes(x=bin, y=measure)) + temp
 
 p6 <- tempdata %>% filter(gr %in% "water (IV)") %>% 
-  ggplot(aes(x=period, y=measure)) + temp
+  ggplot(aes(x=bin, y=measure)) + temp
 
 #number of visits
 fig[[2]] <- (p1 + p2) / (p3 + p4) / (p5 + p6) + 
@@ -183,7 +197,7 @@ p2 <- getPreference() %>%
 p3 <- result$br %>%
   left_join(manimal) %>%
   ggplot(aes(x = substance, y = value, group = substance)) +
-  box_default + median_default + point_default +
+  box_default + point_default +
   geom_hline(yintercept = 0.5, colour = 'black', linetype = "dashed") +
   scale_y_continuous(breaks = c(0.2, .4, .6, .8), limits = c(0.2, .8), expand = c(0, 0)) +
   labs(y = 'Preference of more certain option') +
@@ -207,7 +221,7 @@ temp <- {list(
                    stroke = 0,
                    shape = 16,
                    colour = gg$point.colour,
-                   alpha = 0.2,
+                   alpha = 0.1,
                    width = 0.05,
                    method = "tukeyDense"),
   geom_hline(yintercept = 0.5, linetype = 'dotted'),
@@ -225,7 +239,7 @@ temp <- {list(
                      expand = c(0.02, 0.02)),
   facet_wrap( ~ dooropened, labeller = 
                 labeller(dooropened = gg$stay.label)),
-  labs(y = 'probability of stay', x = 'log(interval) [min]'),
+  labs(y = 'probability of stay', x = 'min'),
   theme_publication,
   theme(panel.spacing = unit(1, "lines"),
         axis.line.x = element_blank(),
@@ -249,9 +263,9 @@ fig[[4]] <- (p1 | p2) / (p3 | p4) + plot_annotation(tag_levels = "A")
 # fig 5 win stay ----------------------------------------------------------
 #win-stay lose-shift
 
-temp <- list(point_default, 
-             geom_line(aes(group = interaction(tag, param)), alpha = .4, 
+temp <- list(geom_line(aes(group = interaction(tag, param)), alpha = .3, 
                        colour = "darkgray"),
+             point_default(point.size = 2), 
              scale_y_continuous(expand = c(0,0), limits = c(0,1), 
                                 breaks = c(0, .5, 1)), 
              facet_wrap(~substance), theme_publication, 
@@ -264,15 +278,15 @@ temp <- list(point_default,
 util_winstay <- function(sb){
   dmodel %>% left_join(manimal, by = "tag") %>%
     filter(substance %in% sb) %>% 
-    filter(intervalb <= 2 | intervalb >= 10) %>%
-    mutate(short = ifelse(intervalb <= 2, "[<2]", "[>10]")) %>%
+    filter(intervala <= 2 | intervala >= 10) %>%
+    mutate(short = ifelse(intervala <= 2, "[<2]", "[>10]")) %>%
     group_by(tag, short) %>%
-    summarise(winstay = length(which(dooropened == 1 & stay == 1))/ 
+    summarise(`win-stay` = length(which(dooropened == 1 & stay == 1))/ 
                 length(which(dooropened == 1)),
-              loseshift = length(which(dooropened == 0 & stay == 0))/
+              `lose-shift` = length(which(dooropened == 0 & stay == 0))/
                 length(which(dooropened == 0))) %>%
     tidyr::gather(param, value, -tag, -short) %>%
-    mutate(param = factor(param, levels = c("winstay", "loseshift"), 
+    mutate(param = factor(param, levels = c("win-stay", "lose-shift"), 
                           ordered = T)) %>%
     left_join(manimal)}
 
@@ -294,6 +308,16 @@ p4 <- util_winstay("water") %>%
   
 
 fig[[5]] <- (p1 | p2) / (p3 | p4) + plot_annotation(tag_levels = "A")
+
+
+# fig stat ----------------------------------------------------------------
+
+anova_result <- aov(formula = value ~ short * substance + Error(tag/(short)), 
+    data = util_winstay(c("alcohol", "alcoholsaccharin", "saccharin", "water")) %>%
+      filter(param == "win-stay"))
+
+summary(anova_result)
+
 
 # fig 5 -------------------------------------------------------------------
 # glm results
