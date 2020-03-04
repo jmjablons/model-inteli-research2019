@@ -20,7 +20,7 @@ dmodel <-
   mutate(
     stay = ifelse(corner == lead(corner), 1, 0),
     intervalb = as.numeric(start - lag(end), units = 'mins'),
-    iltervala = -as.numeric(end - lead(start), units = 'mins')) %>%
+    intervala = -as.numeric(end - lead(start), units = 'mins')) %>%
   ungroup() %>%
   arrange(tag, start)
 
