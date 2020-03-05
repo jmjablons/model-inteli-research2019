@@ -183,3 +183,9 @@ dmodel %>%
 
 # outlier
 with(dmodel, {table(tag, contingency)})
+
+# save  -------------------------------------------------------------------
+rmodel %>%
+  purrr::map(~tidyr::gather(., measure, value, -tag, -name)) %>%
+  dplyr::bind_rows() %>%
+  saveRDS('data/model_result.rds')
