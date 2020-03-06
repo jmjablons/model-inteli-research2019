@@ -39,14 +39,26 @@ result$br <-
 # stat --------------------------------------------------------------------
 substances <- unique(temp$substance)
 
+#choices
+temp <- dall %>%
+  filter(info == 'reversal') %>%
+  group_by(tag) %>% 
+  summarise(value = length(which(rp > 0 & visitduration > 2))) %>%
+  ungroup() %>%
+  left_join(manimal) %>%
+  mutate(substance = as.factor(substance))
+
+# reward preference
 temp <- getPreference() %>%
   left_join(manimal) %>%
   mutate(substance = as.factor(substance))
 
+# better ratio
 temp <- result$br %>%
   left_join(manimal) %>%
   mutate(substance = as.factor(substance))
 
+# model parameters
 temp <- rmodel[["puzzlement*"]] %>%
   left_join(manimal) %>%
   mutate(substance = as.factor(substance),
@@ -56,6 +68,7 @@ temp <- rmodel[["puzzlement*"]] %>%
 kruskal.test(data = temp, value ~ substance)$p.value %>%
   format(scientific = F, digits = 3)
 FSA::dunnTest(data = temp, value ~ substance, method="bh")
+format(5.546344e-01, scientific = F)
 
 ## greater than random
 for(i in seq_along(substances)){
