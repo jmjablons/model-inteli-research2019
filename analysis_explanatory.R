@@ -3,7 +3,6 @@
 # dependency --------------------------------------------------------------
 library(boot)
 
-
 # substance preference ----------------------------------------------------
 getPreference <- function(n.hours = 96, period.info = "adaptation", a = dall){
   period <- a %>%
@@ -27,8 +26,8 @@ getPreference <- function(n.hours = 96, period.info = "adaptation", a = dall){
 result$preference <- getPreference()
 
 # better ratio ------------------------------------------------------------
-result$br <- 
-  dall %>%
+result$br <- dall %>%
+  filter(info != "finish") %>%
   filter(label %in% c("0x0.3x0.9")) %>%
   group_by(tag) %>%
   summarise(n = n(),
@@ -85,6 +84,14 @@ with(temp, {effsize::cohen.d(
 
 # glm win-stay behaviour --------------------------------------------------
 
+## check for contrasts
+# lapply(X = unique(dmodel$tag), function(a){dmodel[dmodel$tag == a,] %>%
+#     group_by(tag, corner) %>% summarise(N = n())}) %>% bind_rows() %>%
+#   tidyr::spread(corner, N) %>% View()
+## gives:
+# not enough trials for each corner:
+outlier <- c("900110000199391", "900110000199541")
+
 getErrorRate <- function(real.data, predict.data) {
     real.data = as.vector(as.logical(real.data))
     predict.data = as.vector(predict.data > 0.5)
@@ -118,8 +125,9 @@ modelStay2 <- function(mouse, a = dmodel, k.fold = 10) {
   # k.fold = nrow(nodal) for LOOCV
   set.seed(123)
   dmouse <- a[a$tag == mouse,] %>% filter(!is.na(stay) & !is.na(intervala))
-  dmouse <- mutate(dmouse, corner = ceiling(corner/2),
-                   dooropened = dooropened)
+  dmouse <- mutate(dmouse, stay = as.factor(stay),
+                   corner = as.factor(ceiling(corner/2)),
+                   dooropened = as.factor(dooropened))
   dmouse = dmouse %>% select(stay, corner, dooropened, intervala)
   result.glm <- glm(stay ~ dooropened + intervala + corner, 
                     data = dmouse, family = binomial)
@@ -139,5 +147,5 @@ modelStay2 <- function(mouse, a = dmodel, k.fold = 10) {
            deltafoldadj = errorcv[2],
            sig = ifelse(probability < 0.05, 1, 0))}
 
-
-result$glm2 <- lapply(manimal$tag, function(x) {modelStay2(x)}) %>% bind_rows()
+result$glm2 <- lapply(setdiff(unique(dmodel$tag), outlier), 
+                      function(x) {modelStay2(x)}) %>% bind_rows()
