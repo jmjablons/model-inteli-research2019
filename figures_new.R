@@ -517,7 +517,7 @@ fig[[7]] <- p1 + p2 + plot_annotation(tag_levels = "A")
 temp <- c("basic", "basic4arm", "zero", "dual", "fictitious", "hybrid", 
           "forgetful", "noisywinstay", "noisywinstay+", "attention", 
           "attention+", "decay", "decay*", "decay+", "decay++",
-          "puzzlement", "puzzlement*", "puzzlement+","puzzlement++" ,"puzzlement+*", 
+          "puzzlement", "puzzlement_fix","puzzlement*", "puzzlement+","puzzlement++" ,"puzzlement+*", 
           "reproval", "betadown", "betadown-", "betadown_")
 
 temp2 <- list(
@@ -542,7 +542,7 @@ p1 <- aictidy %>%
   mutate(name = factor(name, levels = temp, ordered = T)) %>%
   filter(name %in% c("zero", "dual", "fictitious", "hybrid", 
                      "noisywinstay", "forgetful",  "attention")) %>%
-  ggplot(aes(x = name, y = delta, fill = name)) + temp2
+  ggplot(aes(x = name, y = delta)) + temp2
 
 p2 <- aictidy %>%
   filter(substance == "saccharin") %>%
@@ -552,7 +552,7 @@ p2 <- aictidy %>%
   ggplot(aes(x = name, y = delta, fill = name)) + temp2
 
 p3 <- aictidy %>%
-  filter(substance == "alcoholsaccharin") %>%
+  filter(substance == "alcohol+saccharin") %>%
   mutate(name = factor(name, levels = temp, ordered = T)) %>%
   filter(name %in% c("zero", "dual", "fictitious", "hybrid", 
                      "noisywinstay", "forgetful",  "attention")) %>%
@@ -570,28 +570,28 @@ p5 <- aictidy %>%
   filter(substance == "alcohol") %>%
   mutate(name = factor(name, levels = temp, ordered = T)) %>%
   filter(name %in% c("decay", "reproval", "decay*","decay+", 
-                     "puzzlement", "puzzlement*", "puzzlement++")) %>%
+                     "puzzlement", "puzzlement_fix", "puzzlement*", "puzzlement++")) %>%
   ggplot(aes(x = name, y = delta, fill = name)) + temp2
 
 p6 <- aictidy %>%
   filter(substance == "saccharin") %>%
   mutate(name = factor(name, levels = temp, ordered = T)) %>%
   filter(name %in% c("decay", "reproval", "decay*","decay+", 
-                     "puzzlement", "puzzlement*", "puzzlement++")) %>%
+                     "puzzlement", "puzzlement_fix", "puzzlement*", "puzzlement++")) %>%
   ggplot(aes(x = name, y = delta, fill = name)) + temp2
 
 p7 <- aictidy %>%
-  filter(substance == "alcoholsaccharin") %>%
+  filter(substance == "alcohol+saccharin") %>%
   mutate(name = factor(name, levels = temp, ordered = T)) %>%
   filter(name %in% c("decay", "reproval", "decay*","decay+", 
-                     "puzzlement", "puzzlement*", "puzzlement++")) %>%
+                     "puzzlement", "puzzlement_fix", "puzzlement*", "puzzlement++")) %>%
   ggplot(aes(x = name, y = delta, fill = name)) + temp2
 
 p8 <- aictidy %>%
   filter(substance == "water") %>%
   mutate(name = factor(name, levels = temp, ordered = T)) %>%
   filter(name %in% c("decay", "reproval", "decay*","decay+", 
-                     "puzzlement", "puzzlement*", "puzzlement++")) %>%
+                     "puzzlement", "puzzlement_fix", "puzzlement*", "puzzlement++")) %>%
   ggplot(aes(x = name, y = delta, fill = name)) + temp2
 
 fig[[8]] <- ((p1 | p5) / (p2 | p6) / (p3 | p7) / (p4 | p8)) +
@@ -638,10 +638,12 @@ fig[[9]] <- (
 dhero <- dmodel[dmodel$tag == hero,] %>% 
   filter(contingency == 17)
 
-temppar <- rmodel %>% 
-  filter(tag == hero, name == "basic", grepl("par", measure)) %>%
-  select(measure, value) %>%
-  tidyr::spread(measure, value) %>% unlist()
+# dmodel %>%
+#   #filter(visitduration > 600) %>%
+#   mutate(visitduration = visitduration) %>%
+#   ggplot(aes(x = visitduration))+
+#   geom_density() %>%
+#   plotly::ggplotly()
 
 # basic
 temp_basic <- (function(par, a) {
@@ -710,11 +712,13 @@ rmodel %>%
   tidyr::spread(measure, value) %>% unlist(), 
 dhero)
 
-temp_basic %>%
+p1 <- temp_basic %>%
   mutate(choice = ifelse(choice == 2, 1, 0)) %>%
   ggplot(aes(x = time, y = choice))+
-  geom_quasirandom(aes(fill = as.factor(reward)), size = gg$point.size,
-                   groupOnX = FALSE, shape = 21, colour = gg$point.colour,
+  geom_quasirandom(aes(fill = as.factor(reward)), 
+                   size = gg$point.size,
+                   groupOnX = FALSE, dodge.width = 0, 
+                   shape = 21, colour = gg$point.colour,
                    width = 0.01, method = "tukeyDense")+
   geom_line(data = temp_basic, aes(x = time, y = prob), 
             colour = "gray")+
@@ -731,7 +735,7 @@ temp_basic %>%
         axis.text.y.right = element_text(color = "black"),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank())+
-  labs(y = "probability of performed choice (basic)")+
+  labs(y = "probability of performed choice")+
   scale_fill_manual(values = c("white","darkgray"))
   #scale_shape_manual(values=c(21,16))
 
@@ -741,38 +745,41 @@ dummy <- (function(par, a) {
   nll = 0
   a = a[with(a, order(start)), ]
   Q = c(0, 0)
-  date = rep(a$start[1], 2)
-  t = c(0, 0)
+  date = a$end[1]
+  t = 0
   P <- vector()
   rewards = a$dooropened
   sides = ceiling(a$corner/2)
-  nows = a$start
+  nows.start = a$start
+  nows.end = a$end
   beta.zero = par[2]
   output <- list()
   beta = 1
   x <- 1
-  for (i in seq_along(sides[-(1)])) {
+  for (i in seq_along(sides)) {
     r = rewards[i]
     s = sides[i]
-    now = nows[i]
+    now.s = nows.start[i]
+    now.e = nows.end[i]
     #dates <- seq(nows[(i-1)], nows[i], 30)
     dif = date
-    while(any(dif < nows[(i+1)])){
+    while(dif < nows.start[(i+1)]){
       P = exp(beta * Q) / sum(exp(beta * Q))
       if(P[s] < .001){P[s] = .001}
       if(P[s] > .999){P[s] = .999}
       dif = dif + lubridate::seconds(30)
-      t = as.numeric(difftime(now, date + dif, units = 'mins'))
-      beta = exp( -(t[s]) * par[3] ) * beta.zero
+      t = as.numeric(difftime(now.s, (date + dif), units = 'mins'))
+      beta = exp( -(t) * par[3] ) * beta.zero
       output[[x]] <- tibble(time = dif, prob1 = P[1], prob2 = P[2], 
-                            probside = P[s], probdiv = ifelse(s > 1, P[s], -P[s]))
+                            probside = P[s])
       x = x + 1}
-    date[s] = now
+    date = now.e
     pe = r - Q[s]
     Q[s] = Q[s] + (par[1] * pe)}
-  output})(rmodel[["puzzlement"]] %>% filter(tag == hero) %>%
+  output})(rmodel[["puzzlement_fix"]] %>% filter(tag == hero) %>%
              select(grep("par", names(.))) %>% unlist(),
            dhero)
+
 dummy = bind_rows(dummy) %>% mutate(time = lubridate::as_datetime(time))
 
 temp %>%

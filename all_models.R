@@ -34,9 +34,9 @@ wrapmodel <- function(list.parameters, a = dmodel, tags = NULL) {
   progressbar <- txtProgressBar(0, length(tags), char = '*', style = 3)
   output = list()
   for(m in seq_along(tags)) {
-    setTxtProgressBar(progressbar, m)
     dmouse = a[a$tag == tags[m], ]
-    output[[m]] = getoptimal(dmouse, list.parameters)}
+    output[[m]] = getoptimal(dmouse, list.parameters)
+    setTxtProgressBar(progressbar, m)}
   close(progressbar)
   do.call(rbind, output)}
 
@@ -593,6 +593,50 @@ model <- function(par, a) {
   rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
     mutate(name = name, tag = as.character(tag), 
            aic = getaic(length(initial), value))}
+
+
+# puzzlement fixed --------------------------------------------------------
+model <- function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 1 |
+      par[2] < 0 | par[2] > 50 | 
+      par[3] < 0 | par[3] > 1) {
+    nll = Inf
+  } else {
+    Q = c(0, 0)
+    date = a$start[1]
+    t = 0
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner/2)
+    intervals = a$intervalb
+    intervals[1] = 0
+    beta.zero = par[2]
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      t = intervals[i]
+      t = ifelse(t > 660, 660, t)
+      beta = exp( -t * par[3] ) * beta.zero
+      P = exp(beta * Q) / sum(exp(beta * Q))
+      if(P[s] < .001){P[s] = .001}
+      if(P[s] > .999){P[s] = .999}
+      nll = -log(P[s]) + nll
+      pe = r - Q[s]
+      Q[s] = Q[s] + (par[1] * pe)}}
+  nll}
+
+{name = "puzzlement_fix"
+  initial <- expand.grid(
+    alpha = initials.default,
+    beta = initials.beta,
+    bdecay = initials.primitive) %>%
+    as.list()
+  rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
+    mutate(name = name, tag = as.character(tag), 
+           aic = getaic(length(initial), value))}
+
 
 # puzzlement split --------------------------------------------------------
 model <- function(par, a) {

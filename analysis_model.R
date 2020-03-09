@@ -19,8 +19,7 @@ aictidy <- rmodel %>%
   purrr::map(~select(., name, aic, tag)) %>%
   bind_rows() %>%
   mutate(delta = aic - .$aic[.$tag == tag & .$name == "basic"]) %>%
-  merge(manimal, all.x = T) %>%
-  as_tibble() %>%
+  left_join(manimal) %>%
   left_join((dmodel %>%
                filter(is.finite(dooropened) & is.finite(corner)) %>%
                group_by(tag) %>%
