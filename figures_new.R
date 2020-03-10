@@ -716,102 +716,88 @@ p1 <- temp_basic %>%
 
 # fig 10 ------------------------------------------------------------------
 
-
-function(par, a) {
-  a = a[with(a, order(start)), ]
-  Q = c(0, 0)
-  t = 0
-  P <- vector()
-  rewards = a$dooropened
-  sides = ceiling(a$corner/2)
-  intervals = a$intervalb
-  intervals[1] = 0
-  beta.zero = par[2]
-  for (i in seq_along(sides)) {
-    t = intervals[i]
-    t = ifelse(t > 660, 660, t)
-    beta = exp( -t * par[3] ) * beta.zero
-    P = exp(beta * Q) / sum(exp(beta * Q))
-    s = sides[i]
-    if(P[s] < .001){P[s] = .001}
-    if(P[s] > .999){P[s] = .999}
-    nll = -log(P[s]) + nll
-    r = rewards[i]
-    pe = r - Q[s]
-    Q[s] = Q[s] + (par[1] * pe)}}
-
-
 dummy <- (function(par, a) {
-  nll = 0
   a = a[with(a, order(start)), ]
   Q = c(0, 0)
-  date = a$end[1]
   t = 0
   P <- vector()
   rewards = a$dooropened
   sides = ceiling(a$corner/2)
   nows.start = a$start
   nows.end = a$end
-  durations = a$visitduration
-  intervals = a$intervalb
   beta.zero = par[2]
+  dif = nows.start[1]
   output <- list()
-  beta = 1
-  x <- 1
+  x = 1
   for (i in seq_along(sides)) {
-    r = rewards[i]
+    now.start = nows.start[i]
+    now.end = nows.end[i]
     s = sides[i]
-    now.s = nows.start[i]
-    now.e = nows.end[i]
-    #dates <- seq(nows[(i-1)], nows[i], 30)
-    dif = date
-    while(dif < nows.start[(i+1)]){
+    times = seq(from = dif, to = now.start, by = "10 sec")
+    for(d in seq_along(times)){
+      t = as.numeric(difftime(now.start, times[d], units = 'mins'))
+      t = ifelse(t > 660, 660, t)
+      beta = exp( -t * par[3] ) * beta.zero
       P = exp(beta * Q) / sum(exp(beta * Q))
       if(P[s] < .001){P[s] = .001}
       if(P[s] > .999){P[s] = .999}
-      dif = dif + lubridate::seconds(30)
-      t = as.numeric(difftime(now.s, (date + dif), units = 'mins'))
-      beta = exp( -(t) * par[3] ) * beta.zero
-      output[[x]] <- tibble(time = dif, prob1 = P[1], prob2 = P[2], 
-                            probside = P[s])
+      output[[x]] = tibble(time = times[d], pside = P[s],
+                      pfirst = P[1], psecond = P[2])
       x = x + 1}
-    date = now.e
+    r = rewards[i]
     pe = r - Q[s]
-    Q[s] = Q[s] + (par[1] * pe)}
-  output})(rmodel[["puzzlement_fix"]] %>% filter(tag == hero) %>%
-             select(grep("par", names(.))) %>% unlist(),
-           dhero)
+    Q[s] = Q[s] + (par[1] * pe)
+    #Q[-s] = Q[-s] - (par[1] * pe)
+    dif = now.end}
+  return(output)})(
+  # rmodel[["puzzlement"]] %>% filter(tag == hero) %>%  
+  #   select(grep("par", colnames(.))) %>% unlist(), 
+    c(alpha = .5, bdecay = 0, beta = 5),
+  dhero) %>% bind_rows(dummy)
 
+# dummy %>%
+#   mutate(choice = ifelse(choice == 2, 1, 0)) %>%
+#   ggplot(aes(x = time, y = choice))+
+#   geom_point(size = gg$point.size, aes(shape = as.factor(reward)), 
+#              colour = "gray")+
+#   geom_line(data = dummy, aes(x = time, y = prob), colour = "black")+
+#   theme_publication+
+#   scale_y_continuous(limits = c(0,1), breaks = c(0, 1),
+#     sec.axis = sec_axis(~., breaks = c(0, .5, 1), 
+#                         name = "probability of correct predction"))+
+#   scale_x_datetime(expand = c(0,0))+
+#   theme(axis.title.y.right = element_text(color = "black"),
+#         axis.line.y.right = element_line(color = "black"),
+#         axis.ticks.y.right = element_line(color = "black"),
+#         axis.text.y.right = element_text(color = "black"),
+#         axis.text.x = element_blank(),
+#         axis.ticks.x = element_blank())
 
-
-
-
-
-
-
-
-
-
-
-dummy = bind_rows(dummy) %>% mutate(time = lubridate::as_datetime(time))
-
-temp %>%
+temp_basic %>%
   mutate(choice = ifelse(choice == 2, 1, 0)) %>%
   ggplot(aes(x = time, y = choice))+
-  geom_point(size = gg$point.size, aes(shape = as.factor(reward)), 
-             colour = "gray")+
-  geom_line(data = dummy, aes(x = time, y = prob), colour = "black")+
+  geom_quasirandom(aes(fill = as.factor(reward)), 
+                   size = gg$point.size,
+                   groupOnX = FALSE, dodge.width = 0, 
+                   shape = 21, colour = gg$point.colour,
+                   width = 0.01, method = "tukeyDense")+
+  geom_line(data = temp_basic, aes(x = time, y = prob), 
+            colour = "gray")+
+  geom_line(data = dummy, aes(x = time, y = pside), 
+            colour = "black", size = .5)+
+  geom_hline(yintercept = .5, color = "black", linetype = "dotted")+
   theme_publication+
-  scale_y_continuous(limits = c(0,1), breaks = c(0, 1),
-    sec.axis = sec_axis(~., breaks = c(0, .5, 1), 
-                        name = "probability of correct predction"))+
+  scale_y_continuous(limits = c(-.02, 1.02), breaks = c(0, .5, 1), 
+                     expand = c(0,0))+
   scale_x_datetime(expand = c(0,0))+
   theme(axis.title.y.right = element_text(color = "black"),
         axis.line.y.right = element_line(color = "black"),
         axis.ticks.y.right = element_line(color = "black"),
         axis.text.y.right = element_text(color = "black"),
         axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())
+        axis.ticks.x = element_blank())+
+  labs(y = "probability of performed choice")+
+  scale_fill_manual(values = c("white","darkgray"))
 
 fig[[10]]
 
