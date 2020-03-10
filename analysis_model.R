@@ -15,16 +15,16 @@ asinh_trans <- function() {
             inverse   = sinh)}
 
 # analysis ----------------------------------------------------------------
-aictidy <- rmodel %>%
-  purrr::map(~select(., name, aic, tag)) %>%
-  bind_rows() %>%
-  mutate(delta = aic - .$aic[.$tag == tag & .$name == "basic"]) %>%
-  left_join(manimal) %>%
-  left_join((dmodel %>%
-               filter(is.finite(dooropened) & is.finite(corner)) %>%
-               group_by(tag) %>%
-               summarise(ntrial = n())), 
-            by = "tag")
+util_aictidy <- function(a = rmodel){
+  a %>% purrr::map(~select(., name, aic, tag)) %>%
+    bind_rows() %>%
+    mutate(delta = aic - .$aic[.$tag == tag & .$name == "basic"]) %>%
+    left_join(manimal) %>%
+    left_join(
+      (dmodel %>% group_by(tag) %>% summarise(ntrial = n())), 
+      by = "tag")}
+
+aictidy <- util_aictidy()
 
 # plot --------------------------------------------------------------------
 fig$deltaaic <- 

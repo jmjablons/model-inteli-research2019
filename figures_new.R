@@ -126,22 +126,22 @@ gg$cohort = data.frame(exp = c(LETTERS[1:4]),
 # fig 2 -------------------------------------------------------------------
 
 tempdata <- dall %>% 
-  filter(info != "finish") %>%
-  filter(info != "welcome") %>%
+  filter(info %in% c("adaptation", "reversal")) %>%
   left_join(manimal, "tag") %>%
   mutate(cohort = gg$cohort$label[match(exp, gg$cohort$exp)],
          gr = paste(substance, cohort, sep = " ")) %>%
-  binal() %>%
+  binal(hour = 13) %>%
   with(., {.$info[
     (gr %in% "alcohol (I)" & bin == 16 & info == "adaptation") |
       (gr %in% "alcohol (II)" & bin == 15 & info == "adaptation") |
       (gr %in% "saccharin (I)" & bin == 16 & info == "adaptation") |
-      (gr %in% "alcohol+saccharin (II)" & bin == 15 & 
+      (gr %in% "saccharin (III)" & bin == 15 & info == "adaptation") |
+      (gr %in% "water (IV)" & bin == 15 & info == "adaptation") |
+      (gr %in% "alcohol+saccharin (II)" & bin == 15 &
          info == "adaptation")] = "reversal"
     return(.)}) %>%
-  group_by(bin, tag, info, gr, substance) %>% 
+  group_by(bin, info, gr, tag) %>% 
   summarise(nvisit = n()) %>%
-  group_by(bin, info, gr) %>%
   summarise(measure = mean(nvisit, na.rm = T),
             sem = sem(nvisit, na.rm = T)) %>%
   ungroup()
@@ -342,19 +342,26 @@ util_winstay <- function(sb){
 
 p1 <- util_winstay("alcohol") %>%
   ggplot(aes(x = interaction(short, param, sep = " ", lex.order = F), 
-             y = value, group = tag)) + temp
+             y = value, group = tag)) + temp +
+  util_signif(x.where = c(1,2), y.where = 0.98, y.space = 0.01, "red")+
+  util_signif(x.where = c(3,4), y.where = 0.98, y.space = 0.01, "black")
 
 p2 <- util_winstay("alcohol+saccharin") %>%
   ggplot(aes(x = interaction(short, param, sep = " ", lex.order = F), 
-             y = value, group = tag)) + temp
+             y = value, group = tag)) + temp +
+  util_signif(x.where = c(1,2), y.where = 0.98, y.space = 0.01, "black")+
+  util_signif(x.where = c(3,4), y.where = 0.98, y.space = 0.01, "black")
 
 p3 <- util_winstay("saccharin") %>%
   ggplot(aes(x = interaction(short, param, sep = " ", lex.order = F), 
-             y = value)) + temp
+             y = value)) + temp +
+  util_signif(x.where = c(1,2), y.where = 0.98, y.space = 0.01, "red")+
+  util_signif(x.where = c(3,4), y.where = 0.98, y.space = 0.01, "red")
 
 p4 <- util_winstay("water") %>%
   ggplot(aes(x = interaction(short, param, sep = " ", lex.order = F), 
-             y = value)) + temp
+             y = value)) + temp +
+  util_signif(x.where = c(3,4), y.where = 0.9, y.space = 0.01, "black")
 
 fig[[5]] <- (p1 | p2) / (p3 | p4) + plot_annotation(tag_levels = "A")
 
@@ -382,7 +389,7 @@ temp <- {list(box_default(), median_default, point_default(),
         axis.line.x = element_blank()),
     labs(y = "log odds ratio of stay"))}
 
-p1 <- result$glm2 %>%
+p1 <- result$glm %>%
   filter(grepl("intercept", predictor, ignore.case = T)) %>%
   filter(sig == 1) %>%
   mutate(predictor = "Intercept") %>%
@@ -392,7 +399,7 @@ p1 <- result$glm2 %>%
   scale_y_continuous(limits = c(-4, 4), expand = c(0, 0), 
                      breaks = c(-4, 0, 4)) + temp
 
-p3 <- result$glm2 %>%
+p3 <- result$glm %>%
   filter(grepl("door", predictor, ignore.case = T)) %>%
   filter(sig == 1) %>%
   mutate(predictor = "Reward") %>%
@@ -403,7 +410,7 @@ p3 <- result$glm2 %>%
                      breaks = c(-1, 0, 1)) +
   temp
 
-p4 <- result$glm2 %>%
+p4 <- result$glm %>%
   filter(grepl("intervala", predictor, ignore.case = T)) %>%
   filter(sig == 1) %>%
   mutate(predictor = "Per minute of interval") %>%
@@ -414,7 +421,7 @@ p4 <- result$glm2 %>%
                       expand = c(0, 0), breaks = c(-.01, 0, .01)) + 
   temp 
 
-p2 <- result$glm2 %>%
+p2 <- result$glm %>%
   filter(grepl("corner", predictor, ignore.case = T)) %>%
   filter(sig == 1) %>%
   mutate(predictor = "Corner bias") %>%
@@ -445,7 +452,7 @@ p2 <- result$glm2 %>%
 fig[[6]] <- ( (p1 | p2) / (p3 | p4)) + plot_layout() + 
   plot_annotation(tag_levels = "A")
 
-
+(fig[[5]]) | (fig[[6]])
 # fig 6 -------------------------------------------------------------------
 
 util_getoptimpoint <- function(name, limit.beta = 10, 
@@ -481,9 +488,9 @@ p1 <- util_getavsurface(surfacebasic) %>%
   geom_contour(colour = 'white', binwidth = 100) +
   theme_publication +
   theme(legend.position = "bottom") +
-  #geom_point(size = gg$point.size, data = function(x) {filter(x, dot == 1)}, colour = "black", shape = 21)+
-  geom_point(size = gg$point.size, data = filter(util_getoptimpoint(name = name), dot == 1), 
-             colour = "black", shape = 4)+
+  geom_point(size = gg$point.size, fill = "gray",
+             data = filter(util_getoptimpoint(name = name), dot == 1), 
+             colour = "black", pch = 21)+
   scale_x_continuous(breaks = c(0, 0.5, 1), limits = c(0, 1), expand = c(0, 0))+
   scale_y_continuous(breaks = c(0, 1, 5, 10), limits = c(0, NA), expand = c(0, 0)) +
   scale_fill_gradientn(colours = c("white", "black"),
@@ -497,10 +504,9 @@ p2 <- util_getavsurface(surfacefictitious) %>%
   geom_contour(colour = 'white', binwidth = 100) +
   theme_publication +
   theme(legend.position = "bottom") +
-  #geom_point(size = gg$point.size, data = function(x) {
-  #filter(x, dot == 1)}, colour = "black", shape = 21)+
-  geom_point(size = gg$point.size, data = filter(util_getoptimpoint(name = name), dot == 1), 
-             colour = "black", shape = 21)+
+  geom_point(size = gg$point.size, fill = "gray",
+             data = filter(util_getoptimpoint(name = name), dot == 1), 
+             colour = "black", pch = 21)+
   scale_x_continuous(breaks = c(0, 0.5, 1), limits = c(0, 1), expand = c(0, 0))+
   scale_y_continuous(breaks = c(0, 1, 5, 10), limits = c(0, NA), expand = c(0, 0)) +
   scale_fill_gradientn(colours = c("white", "black"), 
@@ -514,85 +520,57 @@ fig[[7]] <- p1 + p2 + plot_annotation(tag_levels = "A")
 
 # fig 7 -------------------------------------------------------------------
 
-temp <- c("basic", "basic4arm", "zero", "dual", "fictitious", "hybrid", 
-          "forgetful", "noisywinstay", "noisywinstay+", "attention", 
-          "attention+", "decay", "decay*", "decay+", "decay++",
-          "puzzlement", "puzzlement_fix","puzzlement*", "puzzlement+","puzzlement++" ,"puzzlement+*", 
-          "reproval", "betadown", "betadown-", "betadown_")
-
-temp2 <- list(
-  box_default(), median_default, point_default(), 
-  geom_hline(yintercept = 0, linetype = "dotted"),
-  theme_publication, labs(x = element_blank(), y = TeX("$\\Delta{AIC}$")),
-  theme(panel.spacing = unit(2, "lines"),
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.ticks.y = element_line(linetype = 'dashed'),
-        axis.ticks.x = element_blank(),
-        axis.line.x = element_blank(),
-        legend.position = "none"),
-  facet_wrap(~ substance, ncol = 1),
-  scale_y_continuous(trans = 'asinh', expand = c(0,0), 
-                     limits = c(-10^4, 10^4),
-                     breaks = c(-(10^(1:9)), 10^(1:9)),
-                     labels = as.character(c(-(1:9), (1:9)))))
+temp <- list(
+  name = c("basic", "basic4arm", "zero", "dual", "fictitious", "hybrid", 
+           "forgetful", "noisywinstay", "noisywinstay+", "attention", 
+           "attention+", "decay", "decayfix", "decay*", "decay+", 
+           "decay++", "puzzlement", "puzzlement_fix","puzzlement*", 
+           "puzzlement+", "puzzlement++" ,"puzzlement+*", 
+           "reproval", "betadown", "betadown-", "betadown_"),
+  data = util_aictidy(),
+  plot = list(box_default(), median_default, point_default(), 
+              geom_hline(yintercept = 0, linetype = "dotted"),
+              theme_publication, 
+              labs(x = element_blank(), y = TeX("$\\Delta{AIC}$")),
+              theme(panel.spacing = unit(2, "lines"),
+                    axis.text.x = element_text(angle = 45, hjust = 1),
+                    axis.ticks.y = element_line(linetype = 'dashed'),
+                    axis.ticks.x = element_blank(),
+                    axis.line.x = element_blank(),
+                    legend.position = "none"),
+              facet_wrap(~ substance, ncol = 1),
+              scale_y_continuous(
+                trans = 'asinh', expand = c(0,0), limits = c(-10^4, 10^4),
+                breaks = c(-(10^(1:9)), 10^(1:9)), 
+                labels = as.character(c(-(1:9), (1:9))))),
+  set = list(general = c("zero", "dual", "fictitious", "hybrid", 
+                         "noisywinstay", "forgetful",  "attention"),
+             time = c("decay", "decayfix", "reproval", "decay*","decay+", 
+                      "puzzlement", "puzzlement_fix", "puzzlement*", 
+                      "puzzlement++")),
+  util = function(sb, set){temp$data %>%
+      filter(substance == sb) %>%
+      mutate(name = factor(name, levels = temp$name, ordered = T)) %>%
+      filter(name %in% temp$set[[set]]) %>%
+      ggplot(aes(x = name, y = delta)) + temp$plot})
 
 # general
-p1 <- aictidy %>%
-  filter(substance == "alcohol") %>%
-  mutate(name = factor(name, levels = temp, ordered = T)) %>%
-  filter(name %in% c("zero", "dual", "fictitious", "hybrid", 
-                     "noisywinstay", "forgetful",  "attention")) %>%
-  ggplot(aes(x = name, y = delta)) + temp2
+p1 <- temp$util("alcohol","general")
 
-p2 <- aictidy %>%
-  filter(substance == "saccharin") %>%
-  mutate(name = factor(name, levels = temp, ordered = T)) %>%
-  filter(name %in% c("zero", "dual", "fictitious", "hybrid", 
-                     "noisywinstay", "forgetful",  "attention")) %>%
-  ggplot(aes(x = name, y = delta, fill = name)) + temp2
+p2 <- temp$util("saccharin","general")
 
-p3 <- aictidy %>%
-  filter(substance == "alcohol+saccharin") %>%
-  mutate(name = factor(name, levels = temp, ordered = T)) %>%
-  filter(name %in% c("zero", "dual", "fictitious", "hybrid", 
-                     "noisywinstay", "forgetful",  "attention")) %>%
-  ggplot(aes(x = name, y = delta, fill = name)) + temp2
+p3 <- temp$util("alcohol+saccharin","general")
 
-p4 <- aictidy %>%
-  filter(substance == "water") %>%
-  mutate(name = factor(name, levels = temp, ordered = T)) %>%
-  filter(name %in% c("zero", "dual", "fictitious", "hybrid", 
-                     "noisywinstay", "forgetful",  "attention")) %>%
-  ggplot(aes(x = name, y = delta, fill = name)) + temp2
+p4 <- temp$util("water","general")
 
 #time-dependent
-p5 <- aictidy %>%
-  filter(substance == "alcohol") %>%
-  mutate(name = factor(name, levels = temp, ordered = T)) %>%
-  filter(name %in% c("decay", "reproval", "decay*","decay+", 
-                     "puzzlement", "puzzlement_fix", "puzzlement*", "puzzlement++")) %>%
-  ggplot(aes(x = name, y = delta, fill = name)) + temp2
+p5 <- temp$util("alcohol","time")
 
-p6 <- aictidy %>%
-  filter(substance == "saccharin") %>%
-  mutate(name = factor(name, levels = temp, ordered = T)) %>%
-  filter(name %in% c("decay", "reproval", "decay*","decay+", 
-                     "puzzlement", "puzzlement_fix", "puzzlement*", "puzzlement++")) %>%
-  ggplot(aes(x = name, y = delta, fill = name)) + temp2
+p6 <- temp$util("saccharin","time")
 
-p7 <- aictidy %>%
-  filter(substance == "alcohol+saccharin") %>%
-  mutate(name = factor(name, levels = temp, ordered = T)) %>%
-  filter(name %in% c("decay", "reproval", "decay*","decay+", 
-                     "puzzlement", "puzzlement_fix", "puzzlement*", "puzzlement++")) %>%
-  ggplot(aes(x = name, y = delta, fill = name)) + temp2
+p7 <- temp$util("alcohol+saccharin","time")
 
-p8 <- aictidy %>%
-  filter(substance == "water") %>%
-  mutate(name = factor(name, levels = temp, ordered = T)) %>%
-  filter(name %in% c("decay", "reproval", "decay*","decay+", 
-                     "puzzlement", "puzzlement_fix", "puzzlement*", "puzzlement++")) %>%
-  ggplot(aes(x = name, y = delta, fill = name)) + temp2
+p8 <- temp$util("water","time")
 
 fig[[8]] <- ((p1 | p5) / (p2 | p6) / (p3 | p7) / (p4 | p8)) +
   plot_annotation(tag_levels = "A")    
@@ -672,10 +650,8 @@ temp_basic <- (function(par, a) {
          time = nows,
          prob = probs,
          prob2 = probs2)})(
-rmodel %>% 
-  filter(tag == hero, name == "basic", grepl("par", measure)) %>%
-  select(measure, value) %>%
-  tidyr::spread(measure, value) %>% unlist(), 
+rmodel[["basic"]] %>% filter(tag == hero) %>%  
+  select(grep("par", colnames(.))) %>% unlist(), 
 dhero)
 
 # fictitious
@@ -706,11 +682,9 @@ temp_fictitious <- (function(par, a) {
          time = nows,
          prob = probs,
          prob2 = probs2)})(
-rmodel %>% 
-  filter(tag == hero, name == "fictitious", grepl("par", measure)) %>%
-  select(measure, value) %>%
-  tidyr::spread(measure, value) %>% unlist(), 
-dhero)
+           rmodel[["fictitious"]] %>% filter(tag == hero) %>%  
+    select(grep("par", colnames(.))) %>% unlist(), 
+  dhero)
 
 p1 <- temp_basic %>%
   mutate(choice = ifelse(choice == 2, 1, 0)) %>%

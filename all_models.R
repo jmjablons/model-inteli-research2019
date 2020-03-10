@@ -303,6 +303,41 @@ model <- function(par, a) {
            aic = getaic(length(initial), value))}
 
 # decay -------------------------------------------------------------------
+# model <- function(par, a) {
+#   a = a[with(a, order(start)), ]
+#   nll = 0
+#   if (par[1] < 0 | par[1] > 1 |
+#       par[2] < 0 | par[2] > 50 | 
+#       par[3] < 0 | par[3] > 1) {
+#     nll = Inf
+#   } else {
+#     tempQ = c()
+#     Q = c(0, 0)
+#     date = rep(a$start[1], 2)
+#     t = c(0, 0)
+#     P <- vector()
+#     rewards = a$dooropened
+#     sides = ceiling(a$corner/2)
+#     nows = a$start
+#     for (i in seq_along(sides)) {
+#       r = rewards[i]
+#       s = sides[i]
+#       now = nows[i]
+#       t = as.numeric(difftime(now, date, units = 'mins'))
+#       t = ifelse(t > 660, 660, t)
+#       date[s] = now
+#       Q[s] = exp( -(t[s]) * par[3] ) * Q[s]
+#       tempQ = exp( -(t[-s]) * par[3] ) * Q[-s]
+#       P[s] = exp(par[2] * Q[s]) / 
+#         (sum(exp(par[2] * Q[s]), exp(par[2] * tempQ)))
+#       if(P[s] < .001){P[s] = .001}
+#       if(P[s] > .999){P[s] = .999}
+#       nll = -log(P[s]) + nll
+#       pe = r - Q[s]
+#       Q[s] = Q[s] + (par[1] * pe)}}
+#   nll}
+
+# decay fix ---------------------------------------------------------------
 model <- function(par, a) {
   a = a[with(a, order(start)), ]
   nll = 0
@@ -318,14 +353,16 @@ model <- function(par, a) {
     P <- vector()
     rewards = a$dooropened
     sides = ceiling(a$corner/2)
-    nows = a$start
+    nows.start = a$start
+    nows.end = a$end
     for (i in seq_along(sides)) {
       r = rewards[i]
       s = sides[i]
-      now = nows[i]
-      t = as.numeric(difftime(now, date, units = 'mins'))
+      now.start = nows.start[i]
+      now.end = nows.end[i]
+      t = as.numeric(difftime(now.start, date, units = 'mins'))
       t = ifelse(t > 660, 660, t)
-      date[s] = now
+      date[s] = now.end
       Q[s] = exp( -(t[s]) * par[3] ) * Q[s]
       tempQ = exp( -(t[-s]) * par[3] ) * Q[-s]
       P[s] = exp(par[2] * Q[s]) / 
@@ -337,7 +374,7 @@ model <- function(par, a) {
       Q[s] = Q[s] + (par[1] * pe)}}
   nll}
 
-{name = "decay"
+{name = "decayfix"
   initial <- expand.grid(
     alpha = initials.default,
     beta = initials.beta,
@@ -347,7 +384,45 @@ model <- function(par, a) {
     mutate(name = name, tag = as.character(tag), 
            aic = getaic(length(initial), value))}
 
+
 # decay fictitious --------------------------------------------------------
+# model <- function(par, a) {
+#   a = a[with(a, order(start)), ]
+#   nll = 0
+#   if (par[1] < 0 | par[1] > 1 |
+#       par[2] < 0 | par[2] > 50 |
+#       par[3] < 0 | par[3] > 1) {
+#     nll = Inf
+#   } else {
+#     tempQ = c()
+#     Q = c(0, 0)
+#     date = rep(a$start[1], 2)
+#     t = c(0, 0)
+#     P <- vector()
+#     rewards = a$dooropened
+#     sides = ceiling(a$corner/2)
+#     nows = a$start
+#     rew = c(0,0)
+#     for (i in seq_along(sides)) {
+#       r = rewards[i]
+#       s = sides[i]
+#       now = nows[i]
+#       t = as.numeric(difftime(now, date, units = 'mins'))
+#       t = ifelse(t > 660, 660, t)
+#       date[s] = now
+#       Q[s] = exp( -(t[s]) * par[3] ) * Q[s]
+#       tempQ = exp( -(t[-s]) * par[3] ) * Q[-s]
+#       P[s] = exp(par[2] * Q[s]) / 
+#         (sum(exp(par[2] * Q[s]), exp(par[2] * tempQ)))
+#       if(P[s] < .001){P[s] = .001}
+#       if(P[s] > .999){P[s] = .999}
+#       nll = -log(P[s]) + nll
+#       pe = r - Q[s]
+#       Q[s] = Q[s] + (par[1] * pe)
+#       Q[-s] = Q[-s] + (par[1] * pe)}}
+#   nll}
+
+# decay fix fictitious ----------------------------------------------------
 model <- function(par, a) {
   a = a[with(a, order(start)), ]
   nll = 0
@@ -363,15 +438,17 @@ model <- function(par, a) {
     P <- vector()
     rewards = a$dooropened
     sides = ceiling(a$corner/2)
-    nows = a$start
+    nows.start = a$start
+    nows.end = a$end
     rew = c(0,0)
     for (i in seq_along(sides)) {
       r = rewards[i]
       s = sides[i]
-      now = nows[i]
-      t = as.numeric(difftime(now, date, units = 'mins'))
+      now.start = nows.start[i]
+      now.end = nows.end[i]
+      t = as.numeric(difftime(now.start, date, units = 'mins'))
       t = ifelse(t > 660, 660, t)
-      date[s] = now
+      date[s] = now.end
       Q[s] = exp( -(t[s]) * par[3] ) * Q[s]
       tempQ = exp( -(t[-s]) * par[3] ) * Q[-s]
       P[s] = exp(par[2] * Q[s]) / 
@@ -384,7 +461,7 @@ model <- function(par, a) {
       Q[-s] = Q[-s] + (par[1] * pe)}}
   nll}
 
-{name = "decay*"
+{name = "decayfix*"
   initial <- expand.grid(
     alpha = initials.default,
     beta = initials.beta,
@@ -394,7 +471,8 @@ model <- function(par, a) {
     mutate(name = name, tag = as.character(tag), 
            aic = getaic(length(initial), value))}
 
-# decay split fictitious --------------------------------------------------
+
+# decay fix split ---------------------------------------------------------
 model <- function(par, a) {
   a = a[with(a, order(start)), ]
   nll = 0
@@ -411,15 +489,17 @@ model <- function(par, a) {
     P <- vector()
     rewards = a$dooropened
     sides = ceiling(a$corner/2)
-    nows = a$start
+    nows.start = a$start
+    nows.end = a$end
     rew = c(0,0)
     for (i in seq_along(sides)) {
       r = rewards[i]
       s = sides[i]
-      now = nows[i]
-      t = as.numeric(difftime(now, date, units = 'mins'))
+      now.start = nows.start[i]
+      now.end = nows.end[i]
+      t = as.numeric(difftime(now.start, date, units = 'mins'))
       t = ifelse(t > 660, 660, t)
-      date[s] = now
+      date[s] = now.end
       decay = ifelse(rew == 1, par[3], par[4])
       Q[s] = exp( -(t[s]) * decay[s] ) * Q[s]
       tempQ = exp( -(t[-s]) * decay[-s] ) * Q[-s]
@@ -430,11 +510,10 @@ model <- function(par, a) {
       nll = -log(P[s]) + nll
       pe = r - Q[s]
       Q[s] = Q[s] + (par[1] * pe)
-      Q[-s] = Q[-s] + (par[1] * pe)
       rew[s] = r}}
   nll}
 
-{name = "decay+"
+{name = "decayfix+"
   initial <- expand.grid(
     alpha = initials.default,
     beta = initials.beta,
@@ -444,6 +523,47 @@ model <- function(par, a) {
   rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
     mutate(name = name, tag = as.character(tag), 
            aic = getaic(length(initial), value))}
+
+
+# decay split fictitious --------------------------------------------------
+# model <- function(par, a) {
+#   a = a[with(a, order(start)), ]
+#   nll = 0
+#   if (par[1] < 0 | par[1] > 1 |
+#       par[2] < 0 | par[2] > 50 |
+#       par[3] < 0 | par[3] > 1 |
+#       par[4] < 0 | par[4] > 1) {
+#     nll = Inf
+#   } else {
+#     tempQ = c()
+#     Q = c(0, 0)
+#     date = rep(a$start[1], 2)
+#     t = c(0, 0)
+#     P <- vector()
+#     rewards = a$dooropened
+#     sides = ceiling(a$corner/2)
+#     nows = a$start
+#     rew = c(0,0)
+#     for (i in seq_along(sides)) {
+#       r = rewards[i]
+#       s = sides[i]
+#       now = nows[i]
+#       t = as.numeric(difftime(now, date, units = 'mins'))
+#       t = ifelse(t > 660, 660, t)
+#       date[s] = now
+#       decay = ifelse(rew == 1, par[3], par[4])
+#       Q[s] = exp( -(t[s]) * decay[s] ) * Q[s]
+#       tempQ = exp( -(t[-s]) * decay[-s] ) * Q[-s]
+#       P[s] = exp(par[2] * Q[s]) / 
+#         (sum(exp(par[2] * Q[s]), exp(par[2] * tempQ)))
+#       if(P[s] < .001){P[s] = .001}
+#       if(P[s] > .999){P[s] = .999}
+#       nll = -log(P[s]) + nll
+#       pe = r - Q[s]
+#       Q[s] = Q[s] + (par[1] * pe)
+#       Q[-s] = Q[-s] + (par[1] * pe)
+#       rew[s] = r}}
+#   nll}
 
 # decay threshold ---------------------------------------------------------
 model <- function(par, a) {
@@ -463,15 +583,17 @@ model <- function(par, a) {
     P <- vector()
     rewards = a$dooropened
     sides = ceiling(a$corner/2)
-    nows = a$start
+    nows.start = a$start
+    nows.end = a$end
     rew = c(0,0)
     for (i in seq_along(sides)) {
       r = rewards[i]
       s = sides[i]
-      now = nows[i]
-      t = as.numeric(difftime(now, date, units = 'mins'))
+      now.start = nows.start[i]
+      now.end = nows.end[i]
+      t = as.numeric(difftime(now.start, date, units = 'mins'))
       t = ifelse(t > 660, 660, t)
-      date[s] = now
+      date[s] = now.end
       decay = ifelse(rew == 1, par[3], par[4])
       if(t[s] > par[5]){ 
         Q[s] = exp( -(t[s]) * decay[s] ) * Q[s]}
@@ -488,7 +610,7 @@ model <- function(par, a) {
       rew[s] = r}}
   nll}
 
-{name = "decay++"
+{name = "decayfix++"
   initial <- expand.grid(
     alpha = initials.default,
     beta = initials.beta,
@@ -552,48 +674,37 @@ model <- function(par, a) {
            aic = getaic(length(initial), value))}
 
 # puzzlement --------------------------------------------------------------
-model <- function(par, a) {
-  a = a[with(a, order(start)), ]
-  nll = 0
-  if (par[1] < 0 | par[1] > 1 |
-      par[2] < 0 | par[2] > 50 | 
-      par[3] < 0 | par[3] > 1) {
-    nll = Inf
-  } else {
-    Q = c(0, 0)
-    date = a$start[1]
-    t = 0
-    P <- vector()
-    rewards = a$dooropened
-    sides = ceiling(a$corner/2)
-    nows = a$start
-    beta.zero = par[2]
-    for (i in seq_along(sides)) {
-      r = rewards[i]
-      s = sides[i]
-      now = nows[i]
-      t = as.numeric(difftime(now, date, units = 'mins'))
-      t = ifelse(t > 660, 660, t)
-      date = now
-      beta = exp( -t * par[3] ) * beta.zero
-      P = exp(beta * Q) / sum(exp(beta * Q))
-      if(P[s] < .001){P[s] = .001}
-      if(P[s] > .999){P[s] = .999}
-      nll = -log(P[s]) + nll
-      pe = r - Q[s]
-      Q[s] = Q[s] + (par[1] * pe)}}
-  nll}
-
-{name = "puzzlement"
-  initial <- expand.grid(
-    alpha = initials.default,
-    beta = initials.beta,
-    bdecay = initials.primitive) %>%
-    as.list()
-  rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
-    mutate(name = name, tag = as.character(tag), 
-           aic = getaic(length(initial), value))}
-
+# model <- function(par, a) {
+#   a = a[with(a, order(start)), ]
+#   nll = 0
+#   if (par[1] < 0 | par[1] > 1 |
+#       par[2] < 0 | par[2] > 50 | 
+#       par[3] < 0 | par[3] > 1) {
+#     nll = Inf
+#   } else {
+#     Q = c(0, 0)
+#     date = a$start[1]
+#     t = 0
+#     P <- vector()
+#     rewards = a$dooropened
+#     sides = ceiling(a$corner/2)
+#     nows = a$start
+#     beta.zero = par[2]
+#     for (i in seq_along(sides)) {
+#       r = rewards[i]
+#       s = sides[i]
+#       now = nows[i]
+#       t = as.numeric(difftime(now, date, units = 'mins'))
+#       t = ifelse(t > 660, 660, t)
+#       date = now
+#       beta = exp( -t * par[3] ) * beta.zero
+#       P = exp(beta * Q) / sum(exp(beta * Q))
+#       if(P[s] < .001){P[s] = .001}
+#       if(P[s] > .999){P[s] = .999}
+#       nll = -log(P[s]) + nll
+#       pe = r - Q[s]
+#       Q[s] = Q[s] + (par[1] * pe)}}
+#   nll}
 
 # puzzlement fixed --------------------------------------------------------
 model <- function(par, a) {
@@ -627,7 +738,7 @@ model <- function(par, a) {
       Q[s] = Q[s] + (par[1] * pe)}}
   nll}
 
-{name = "puzzlement_fix"
+{name = "puzzlementfix"
   initial <- expand.grid(
     alpha = initials.default,
     beta = initials.beta,
@@ -654,16 +765,15 @@ model <- function(par, a) {
     P <- vector()
     rewards = a$dooropened
     sides = ceiling(a$corner/2)
-    nows = a$start
+    intervals = a$intervalb
+    intervals[1] = 0
     beta.zero = par[2]
     rew = 0
     for (i in seq_along(sides)) {
       r = rewards[i]
       s = sides[i]
-      now = nows[i]
-      t = as.numeric(difftime(now, date, units = 'mins'))
+      t = intervals[i]
       t = ifelse(t > 660, 660, t)
-      date = now
       decay = ifelse(rew == 1, par[3], par[4])
       beta = exp( -t * decay ) * beta.zero
       P = exp(beta * Q) / sum(exp(beta * Q))
@@ -675,7 +785,7 @@ model <- function(par, a) {
       rew = r}}
   nll}
 
-{name = "puzzlement+"
+{name = "puzzlementfix+"
   initial <- expand.grid(
     alpha = initials.default,
     beta = initials.beta,
@@ -688,52 +798,41 @@ model <- function(par, a) {
 
 
 # puzzlement dual ---------------------------------------------------------
-model <- function(par, a) {
-  a = a[with(a, order(start)), ]
-  nll = 0
-  if (par[1] < 0 | par[1] > 1 |
-      par[2] < 0 | par[2] > 1 | 
-      par[3] < 0 | par[3] > 50 |
-      par[4] < 0 | par[4] > 1) {
-    nll = Inf
-  } else {
-    Q = c(0, 0)
-    date = a$start[1]
-    t = 0
-    P <- vector()
-    rewards = a$dooropened
-    sides = ceiling(a$corner/2)
-    nows = a$start
-    beta.zero = par[2]
-    rew = 0
-    for (i in seq_along(sides)) {
-      r = rewards[i]
-      s = sides[i]
-      now = nows[i]
-      t = as.numeric(difftime(now, date, units = 'mins'))
-      t = ifelse(t > 660, 660, t)
-      date = now
-      decay = ifelse(rew == 1, par[3], par[4])
-      beta = exp( -t * decay ) * beta.zero
-      P = exp(beta * Q) / sum(exp(beta * Q))
-      if(P[s] < .001){P[s] = .001}
-      if(P[s] > .999){P[s] = .999}
-      nll = -log(P[s]) + nll
-      pe = r - Q[s]
-      Q[s] = Q[s] + (par[1] * pe)
-      rew = r}}
-  nll}
-
-{name = "puzzlement++"
-  initial <- expand.grid(
-    alpha = initials.default,
-    beta = initials.beta,
-    bdecay.pos = initials.primitive,
-    bdecay.neg = initials.primitive) %>%
-    as.list()
-  rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
-    mutate(name = name, tag = as.character(tag), 
-           aic = getaic(length(initial), value))}
+# model <- function(par, a) {
+#   a = a[with(a, order(start)), ]
+#   nll = 0
+#   if (par[1] < 0 | par[1] > 1 |
+#       par[2] < 0 | par[2] > 1 | 
+#       par[3] < 0 | par[3] > 50 |
+#       par[4] < 0 | par[4] > 1) {
+#     nll = Inf
+#   } else {
+#     Q = c(0, 0)
+#     date = a$start[1]
+#     t = 0
+#     P <- vector()
+#     rewards = a$dooropened
+#     sides = ceiling(a$corner/2)
+#     nows = a$start
+#     beta.zero = par[2]
+#     rew = 0
+#     for (i in seq_along(sides)) {
+#       r = rewards[i]
+#       s = sides[i]
+#       now = nows[i]
+#       t = as.numeric(difftime(now, date, units = 'mins'))
+#       t = ifelse(t > 660, 660, t)
+#       date = now
+#       decay = ifelse(rew == 1, par[3], par[4])
+#       beta = exp( -t * decay ) * beta.zero
+#       P = exp(beta * Q) / sum(exp(beta * Q))
+#       if(P[s] < .001){P[s] = .001}
+#       if(P[s] > .999){P[s] = .999}
+#       nll = -log(P[s]) + nll
+#       pe = r - Q[s]
+#       Q[s] = Q[s] + (par[1] * pe)
+#       rew = r}}
+#   nll}
 
 # puzzlement fictitious ---------------------------------------------------
 model <- function(par, a) {
@@ -750,15 +849,14 @@ model <- function(par, a) {
     P <- vector()
     rewards = a$dooropened
     sides = ceiling(a$corner/2)
-    nows = a$start
+    intervals = a$intervalb
+    intervals[1] = 0
     beta.zero = par[2]
     for (i in seq_along(sides)) {
       r = rewards[i]
       s = sides[i]
-      now = nows[i]
-      t = as.numeric(difftime(now, date, units = 'mins'))
+      t = intervals[i]
       t = ifelse(t > 660, 660, t)
-      date = now
       beta = exp( -t * par[3] ) * beta.zero
       P = exp(beta * Q) / sum(exp(beta * Q))
       if(P[s] < .001){P[s] = .001}
@@ -769,7 +867,7 @@ model <- function(par, a) {
       Q[-s] = Q[-s] - (par[1] * pe)}}
   nll}
 
-{name = "puzzlement*"
+{name = "puzzlementfix*"
   initial <- expand.grid(
     alpha = initials.default,
     beta = initials.beta,
@@ -816,17 +914,6 @@ model <- function(par, a) {
 #       Q[-s] = Q[-s] - (par[1] * pe)
 #       rew[s] = r}}
 #   nll}
-# 
-# {name = "puzzlement+*"
-#   initial <- expand.grid(
-#     alpha = initials.default,
-#     beta = initials.beta,
-#     bdecay.pos = initials.primitive,
-#     bdecay.neg = initials.primitive) %>%
-#     as.list()
-#   rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
-#     mutate(name = name, tag = as.character(tag), 
-#            aic = getaic(length(initial), value))}
 
 # beta attention ----------------------------------------------------------
 
@@ -1103,48 +1190,47 @@ model <- function(par, a) {
 surfacefictitious <- optimraw()
 
 # puzzlement --------------------------------------------------------------
-
-model <- function(par, a) {
-  a = a[with(a, order(start)), ]
-  nll = 0
-  if (par[1] < 0 | par[1] > 1 |
-      par[2] < 0 | par[2] > 50 | 
-      par[3] < 0 | par[3] > 1) {
-    nll = Inf
-  } else {
-    Q = c(0, 0)
-    date = rep(a$start[1], 2)
-    t = c(0, 0)
-    P <- vector()
-    rewards = a$dooropened
-    sides = ceiling(a$corner/2)
-    nows = a$start
-    beta.zero = par[2]
-    for (i in seq_along(sides)) {
-      r = rewards[i]
-      s = sides[i]
-      now = nows[i]
-      t = as.numeric(difftime(now, date, units = 'mins'))
-      t = ifelse(t > 660, 660, t)
-      date[s] = now
-      beta = exp( -(t[s]) * par[3] ) * beta.zero
-      P = exp(beta * Q) / sum(exp(beta * Q))
-      if(P[s] < .001){P[s] = .001}
-      if(P[s] > .999){P[s] = .999}
-      nll = -log(P[s]) + nll
-      pe = r - Q[s]
-      Q[s] = Q[s] + (par[1] * pe)}}
-  nll}
-
-surfacepuzzlement <- (function(tags = manimal$tag, a = dmodel, 
-                               grid = expand.grid(alpha = seq(0, 1, 0.01), 
-                                                  betazero = seq(0,10, 0.1), 
-                                                  bdecay = seq(0, 1, 0.01),
-                                                  nll = NA, tag = NA)){
-  lapply(tags, function(m){dmouse <- a[a$tag == m,]
-  grid[,3] <- apply(grid, 1, function(x){model(c(x[1], x[2], x[3]), dmouse)})
-  grid[,4] <- m
-  grid})})()
+# model <- function(par, a) {
+#   a = a[with(a, order(start)), ]
+#   nll = 0
+#   if (par[1] < 0 | par[1] > 1 |
+#       par[2] < 0 | par[2] > 50 | 
+#       par[3] < 0 | par[3] > 1) {
+#     nll = Inf
+#   } else {
+#     Q = c(0, 0)
+#     date = rep(a$start[1], 2)
+#     t = c(0, 0)
+#     P <- vector()
+#     rewards = a$dooropened
+#     sides = ceiling(a$corner/2)
+#     nows = a$start
+#     beta.zero = par[2]
+#     for (i in seq_along(sides)) {
+#       r = rewards[i]
+#       s = sides[i]
+#       now = nows[i]
+#       t = as.numeric(difftime(now, date, units = 'mins'))
+#       t = ifelse(t > 660, 660, t)
+#       date[s] = now
+#       beta = exp( -(t[s]) * par[3] ) * beta.zero
+#       P = exp(beta * Q) / sum(exp(beta * Q))
+#       if(P[s] < .001){P[s] = .001}
+#       if(P[s] > .999){P[s] = .999}
+#       nll = -log(P[s]) + nll
+#       pe = r - Q[s]
+#       Q[s] = Q[s] + (par[1] * pe)}}
+#   nll}
+# 
+# surfacepuzzlement <- (function(tags = manimal$tag, a = dmodel, 
+#                                grid = expand.grid(alpha = seq(0, 1, 0.01), 
+#                                                   betazero = seq(0,10, 0.1), 
+#                                                   bdecay = seq(0, 1, 0.01),
+#                                                   nll = NA, tag = NA)){
+#   lapply(tags, function(m){dmouse <- a[a$tag == m,]
+#   grid[,3] <- apply(grid, 1, function(x){model(c(x[1], x[2], x[3]), dmouse)})
+#   grid[,4] <- m
+#   grid})})()
 
 
 # surprise ----------------------------------------------------------------
@@ -1164,17 +1250,19 @@ model <- function(par, a) {
     P <- vector()
     rewards = a$dooropened
     sides = ceiling(a$corner/2)
-    nows = a$start
+    nows.start = a$start
+    nows.end = a$end
     rew = c(0,0)
     beta.zero = par[2]
     decay = c(0,0)
     for (i in seq_along(sides)) {
       r = rewards[i]
       s = sides[i]
-      now = nows[i]
-      t = as.numeric(difftime(now, date, units = 'mins'))
+      now.start = nows.start[i]
+      now.end = nows.end[i]
+      t = as.numeric(difftime(now.start, date, units = 'mins'))
       t = ifelse(t > 660, 660, t)
-      date = now
+      date[s] = now.end
       beta = exp( -t * decay ) * beta.zero
       P = exp(beta[s] * Q) / sum(exp(beta[s] * Q))
       if(P[s] < .001){P[s] = .001}

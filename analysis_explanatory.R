@@ -57,6 +57,12 @@ temp <- result$br %>%
   left_join(manimal) %>%
   mutate(substance = as.factor(substance))
 
+# win-stay
+wrap_winstay <- function(substance, what){
+  util_winstay(substance) %>%
+    filter(param == what) %>%
+    tidyr::spread(short, value)}
+
 # model parameters
 temp <- rmodel[["puzzlement*"]] %>%
   left_join(manimal) %>%
@@ -75,6 +81,10 @@ for(i in seq_along(substances)){
     wilcox.test(value[substance == substances[i]], 
                 mu = 0.5, alternative = 'greater')$p.value %>%
       format(scientific = F, digits = 3))})}
+
+## between two groups
+with(wrap_winstay("water", "lose-shift"), {
+  wilcox.test(`[<2]`, `[>10]`, paired = T, conf.int = T)})
 
 ## size effect
 {tsub = 2; tref = 1
@@ -147,5 +157,5 @@ modelStay2 <- function(mouse, a = dmodel, k.fold = 10) {
            deltafoldadj = errorcv[2],
            sig = ifelse(probability < 0.05, 1, 0))}
 
-result$glm2 <- lapply(setdiff(unique(dmodel$tag), outlier), 
+result$glm <- lapply(setdiff(unique(dmodel$tag), outlier), 
                       function(x) {modelStay2(x)}) %>% bind_rows()
