@@ -523,8 +523,10 @@ fig[[7]] <- p1 + p2 + plot_annotation(tag_levels = "A")
 temp <- list(
   name = c("basic", "basic4arm", "zero", "dual", "fictitious", "hybrid", 
            "forgetful", "noisywinstay", "noisywinstay+", "attention", 
-           "attention+", "decay", "decayfix", "decay*", "decay+", 
-           "decay++", "puzzlement", "puzzlement_fix","puzzlement*", 
+           "attention+", "decay", "decay*", "decay+", "decay++", 
+           "decayfix", "decayfix*", "decayfix+", 
+           "puzzlementfix","puzzlementfix*", 
+           "puzzlementfix+", "puzzlement", "puzzlement*", 
            "puzzlement+", "puzzlement++" ,"puzzlement+*", 
            "reproval", "betadown", "betadown-", "betadown_"),
   data = util_aictidy(),
@@ -545,14 +547,14 @@ temp <- list(
                 labels = as.character(c(-(1:9), (1:9))))),
   set = list(general = c("zero", "dual", "fictitious", "hybrid", 
                          "noisywinstay", "forgetful",  "attention"),
-             time = c("decay", "decayfix", "reproval", "decay*","decay+", 
-                      "puzzlement", "puzzlement_fix", "puzzlement*", 
-                      "puzzlement++")),
-  util = function(sb, set){temp$data %>%
-      filter(substance == sb) %>%
-      mutate(name = factor(name, levels = temp$name, ordered = T)) %>%
-      filter(name %in% temp$set[[set]]) %>%
-      ggplot(aes(x = name, y = delta)) + temp$plot})
+             time = c("decayfix", "reproval", "decayfix*","decayfix+", 
+                      "puzzlementfix", "puzzlementfix*", 
+                      "puzzlementfix+")))
+temp$util = function(sb, set){temp$data %>%
+    filter(substance == sb) %>%
+    #mutate(name = factor(name, levels = temp$name, ordered = T)) %>%
+    filter(name %in% temp$set[[set]]) %>%
+    ggplot(aes(x = name, y = delta)) + temp$plot}
 
 # general
 p1 <- temp$util("alcohol","general")
