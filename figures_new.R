@@ -713,7 +713,33 @@ p1 <- temp_basic %>%
   scale_fill_manual(values = c("white","darkgray"))
   #scale_shape_manual(values=c(21,16))
 
-###
+
+# fig 10 ------------------------------------------------------------------
+
+
+function(par, a) {
+  a = a[with(a, order(start)), ]
+  Q = c(0, 0)
+  t = 0
+  P <- vector()
+  rewards = a$dooropened
+  sides = ceiling(a$corner/2)
+  intervals = a$intervalb
+  intervals[1] = 0
+  beta.zero = par[2]
+  for (i in seq_along(sides)) {
+    t = intervals[i]
+    t = ifelse(t > 660, 660, t)
+    beta = exp( -t * par[3] ) * beta.zero
+    P = exp(beta * Q) / sum(exp(beta * Q))
+    s = sides[i]
+    if(P[s] < .001){P[s] = .001}
+    if(P[s] > .999){P[s] = .999}
+    nll = -log(P[s]) + nll
+    r = rewards[i]
+    pe = r - Q[s]
+    Q[s] = Q[s] + (par[1] * pe)}}
+
 
 dummy <- (function(par, a) {
   nll = 0
@@ -726,6 +752,8 @@ dummy <- (function(par, a) {
   sides = ceiling(a$corner/2)
   nows.start = a$start
   nows.end = a$end
+  durations = a$visitduration
+  intervals = a$intervalb
   beta.zero = par[2]
   output <- list()
   beta = 1
@@ -753,6 +781,17 @@ dummy <- (function(par, a) {
   output})(rmodel[["puzzlement_fix"]] %>% filter(tag == hero) %>%
              select(grep("par", names(.))) %>% unlist(),
            dhero)
+
+
+
+
+
+
+
+
+
+
+
 
 dummy = bind_rows(dummy) %>% mutate(time = lubridate::as_datetime(time))
 
