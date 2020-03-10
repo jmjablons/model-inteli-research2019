@@ -716,7 +716,6 @@ model <- function(par, a) {
     nll = Inf
   } else {
     Q = c(0, 0)
-    date = a$start[1]
     t = 0
     P <- vector()
     rewards = a$dooropened
