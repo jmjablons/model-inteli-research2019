@@ -563,7 +563,7 @@ temp <- list(
                       "puzzlementfix+")))
 temp$util = function(sb, set){temp$data %>%
     filter(substance == sb) %>%
-    #mutate(name = factor(name, levels = temp$name, ordered = T)) %>%
+    mutate(name = factor(name, levels = temp$name, ordered = T)) %>%
     filter(name %in% temp$set[[set]]) %>%
     ggplot(aes(x = name, y = delta)) + temp$plot}
 
