@@ -769,8 +769,8 @@ dummy <- (function(par, a) {
   return(output)})(
   # rmodel[["puzzlement"]] %>% filter(tag == hero) %>%  
   #   select(grep("par", colnames(.))) %>% unlist(), 
-    c(alpha = .5, bdecay = 0, beta = 5),
-  dhero) %>% bind_rows(dummy)
+    c(alpha = .01, bdecay = 0.1, beta = 5),
+  dhero) %>% bind_rows()
 
 # dummy %>%
 #   mutate(choice = ifelse(choice == 2, 1, 0)) %>%
