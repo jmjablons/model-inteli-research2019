@@ -667,7 +667,7 @@ model <- function(par, a) {
     alpha = initials.default,
     beta = initials.beta,
     iota = initials.primitive,
-    iota = initials.default) %>% 
+    rho = initials.default) %>% 
     as.list()
   rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
     mutate(name = name, tag = as.character(tag), 

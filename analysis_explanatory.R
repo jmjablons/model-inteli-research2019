@@ -27,7 +27,7 @@ result$preference <- getPreference()
 
 # better ratio ------------------------------------------------------------
 result$br <- dall %>%
-  filter(info != "finish") %>%
+  filter(info %in% "reversal") %>%
   filter(label %in% c("0x0.3x0.9")) %>%
   group_by(tag) %>%
   summarise(n = n(),

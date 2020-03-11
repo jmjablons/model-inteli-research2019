@@ -146,6 +146,17 @@ tempdata <- dall %>%
             sem = sem(nvisit, na.rm = T)) %>%
   ungroup()
 
+## check
+dall %>% 
+  filter(info %in% c("adaptation", "reversal")) %>%
+  left_join(manimal, "tag") %>%
+  mutate(cohort = gg$cohort$label[match(exp, gg$cohort$exp)],
+         gr = paste(substance, cohort, sep = " ")) %>%
+  binal(hour = 13) %>%
+  filter(gr == "alcohol (II)") %>% 
+  group_by(info, bin) %>% 
+  summarise(beg = first(start), n=n()) %>% View()
+
 temp <- list(
   geom_ribbon(aes(ymin=measure-sem, ymax=measure+sem, group = gr), 
               fill = gg$ribbon.fill, colour = gg$ribbon.colour),
@@ -204,24 +215,6 @@ fig[[2]] <- (p1 + p2) / (p3 + p4) / (p5 + p6) +
 
 # fig 3 -------------------------------------------------------------------
 
-p2 <- dall %>%
-  filter(info == 'reversal') %>%
-  group_by(tag) %>% 
-  summarise(measure = length(which(rp > 0 & visitduration > 2))) %>%
-  ungroup() %>%
-  left_join(manimal) %>%
-  ggplot(aes(x = substance, y = measure, group = substance)) +
-  box_default() + median_default + point_default() +
-  util_signif(c(1,2), 2900) +
-  util_signif(c(2,4), 2800) +
-  scale_y_continuous(limits = c(0, 3000), expand = c(0, 0)) +
-  labs(y = 'Total number of choices\nduring reversals') +
-  theme_publication +
-  theme(axis.title.x = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1),
-    axis.ticks.x = element_blank(),
-    axis.line.x = element_blank())
-
 p1 <- getPreference() %>%
   left_join(manimal) %>%
   ggplot(aes(x = substance, y = value, group = substance)) +
@@ -239,6 +232,24 @@ p1 <- getPreference() %>%
         axis.text.x = element_text(angle = 45, hjust = 1),
     axis.ticks.x = element_blank(),
     axis.line.x = element_blank())
+
+p2 <- dall %>%
+  filter(info == 'reversal') %>%
+  group_by(tag) %>% 
+  summarise(measure = length(which(rp > 0 & visitduration > 2))) %>%
+  ungroup() %>%
+  left_join(manimal) %>%
+  ggplot(aes(x = substance, y = measure, group = substance)) +
+  box_default() + median_default + point_default() +
+  util_signif(c(1,2), 2900) +
+  util_signif(c(2,4), 2800) +
+  scale_y_continuous(limits = c(0, 3000), expand = c(0, 0)) +
+  labs(y = 'Total number of choices\nduring reversals') +
+  theme_publication +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_blank())
 
 p3 <- result$br %>%
   left_join(manimal) %>%
@@ -307,7 +318,7 @@ p3 <- dmodel %>% filter(tag == hero0) %>% filter(dooropened == 1) %>%
 p4 <- dmodel %>% filter(tag == hero0) %>% filter(dooropened == 0) %>%
   ggplot(aes(x = log(intervala), y = stay)) + temp
 
-fig[[4]] <- (p2 | p1) / (p4 | p3) + plot_annotation(tag_levels = "A")
+fig[[4]] <- (p2 | p1 | p4 | p3) + plot_annotation(tag_levels = "A")
 
 
 # fig 5 win stay ----------------------------------------------------------
@@ -329,7 +340,7 @@ util_winstay <- function(sb){
   dmodel %>% left_join(manimal, by = "tag") %>%
     filter(substance %in% sb) %>% 
     filter(intervala <= 2 | intervala >= 10) %>%
-    mutate(short = ifelse(intervala <= 2, "[<2]", "[>10]")) %>%
+    mutate(short = ifelse(intervala <= 2, "<2", ">10")) %>%
     group_by(tag, short) %>%
     summarise(`win-stay` = length(which(dooropened == 1 & stay == 1))/ 
                 length(which(dooropened == 1)),
@@ -452,7 +463,7 @@ p2 <- result$glm %>%
 fig[[6]] <- ( (p1 | p2) / (p3 | p4)) + plot_layout() + 
   plot_annotation(tag_levels = "A")
 
-(fig[[5]]) | (fig[[6]])
+(fig[[4]] | fig[[5]] | fig[[6]]) + plot_layout() + plot_annotation(tag_levels = "A")
 # fig 6 -------------------------------------------------------------------
 
 util_getoptimpoint <- function(name, limit.beta = 10, 
@@ -587,30 +598,34 @@ fig[[9]] <- (
     plotpar("basic", "alpha", c(0,1), c(0, .5, 1)) |
       plotpar("basic", "beta", c(0,50), gg$show.beta) +
       util_signif(c(1,4), 49)+
-      util_signif(c(3,4), 45) | 
-      plotpar("puzzlement", "alpha", c(0,1), c(0, .5, 1)) |
-      plotpar("puzzlement", "beta", c(0,50), gg$show.beta)+
-      util_signif(c(1,4), 49)+
-      util_signif(c(3,4), 48) |
-      plotpar("puzzlement", "bdecay", c(0,.2), c(0, .2))+
-      util_signif(c(1,3), .18) 
-  )
-  / 
-    (plotpar("fictitious", "alpha", c(0,1), c(0, .5, 1)) + 
+      util_signif(c(3,4), 45)
+      # plotpar("puzzlementfix", "alpha", c(0,1), c(0, .5, 1)) |
+      # plotpar("puzzlementfix", "beta", c(0,50), gg$show.beta)+
+      # util_signif(c(1,4), 49)+
+      # util_signif(c(3,4), 48) |
+      # plotpar("puzzlementfix", "bdecay", c(0,.2), c(0, .2))+
+      # util_signif(c(1,3), .18) 
+  ) / (
+      plotpar("fictitious", "alpha", c(0,1), c(0, .5, 1)) +
        util_signif(c(1,2), .95) |
        plotpar("fictitious", "beta", c(0,50), gg$show.beta) +
         util_signif(c(1,2),47)+
         util_signif(c(1,4), 49)+
-        util_signif(c(2,4), 48) | 
-       plotpar("puzzlement*", "alpha", c(0,1), c(0, .5, 1))+
-       util_signif(c(1,4), .9)+
-       util_signif(c(3,4), .8) |
-        plotpar("puzzlement*", "beta", c(0,50), gg$show.beta)+
+        util_signif(c(2,4), 48) 
+    ) / (
+      plotpar("puzzlementfix*", "alpha", c(0,1), c(0, .5, 1))+
+        util_signif(c(1,4), .9)+
+        util_signif(c(3,4), .8) |
+        plotpar("puzzlementfix*", "beta", c(0,50), gg$show.beta)+
         util_signif(c(1,4), 47) |
-        plotpar("puzzlement*", "bdecay", c(0,.2), c(0, .2))+
+        plotpar("puzzlementfix*", "bdecay", c(0,.2), c(0, .2))+
         util_signif(c(1,4), .18)+
         util_signif(c(3,4), .17)
-    )
+    ) / (
+      plotpar("decayfix", "alpha", c(0,1), c(0, .5, 1)) |
+        plotpar("decayfix", "beta", c(0,50), gg$show.beta) |
+        plotpar("decayfix", "storage", c(0,1), c(0, .5, 1))
+    ) 
 ) + plot_annotation(tag_levels = "A")
 
 # fig 9 -------------------------------------------------------------------
