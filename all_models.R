@@ -384,7 +384,6 @@ model <- function(par, a) {
     mutate(name = name, tag = as.character(tag), 
            aic = getaic(length(initial), value))}
 
-
 # decay fictitious --------------------------------------------------------
 # model <- function(par, a) {
 #   a = a[with(a, order(start)), ]
@@ -524,6 +523,59 @@ model <- function(par, a) {
     mutate(name = name, tag = as.character(tag), 
            aic = getaic(length(initial), value))}
 
+
+# decay fix split dummy ---------------------------------------------------
+model <- function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 1 |
+      par[2] < 0 | par[2] > 50 |
+      par[3] < 0 | par[3] > 1 |
+      par[4] < 0 | par[4] > 1) {
+    nll = Inf
+  } else {
+    #par[4] = par[3] ##not-working##
+    tempQ = c()
+    Q = c(0, 0)
+    date = rep(a$start[1], 2)
+    t = c(0, 0)
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner/2)
+    nows.start = a$start
+    nows.end = a$end
+    rew = c(0,0)
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      now.start = nows.start[i]
+      now.end = nows.end[i]
+      t = as.numeric(difftime(now.start, date, units = 'mins'))
+      t = ifelse(t > 660, 660, t)
+      date[s] = now.end
+      decay = ifelse(rew == 1, par[3], par[3])
+      Q[s] = exp( -(t[s]) * decay[s] ) * Q[s]
+      tempQ = exp( -(t[-s]) * decay[-s] ) * Q[-s]
+      P[s] = exp(par[2] * Q[s]) / 
+        (sum(exp(par[2] * Q[s]), exp(par[2] * tempQ)))
+      if(P[s] < .001){P[s] = .001}
+      if(P[s] > .999){P[s] = .999}
+      nll = -log(P[s]) + nll
+      pe = r - Q[s]
+      Q[s] = Q[s] + (par[1] * pe)
+      rew[s] = r}}
+  nll}
+
+{name = "decaydummy"
+  initial <- expand.grid(
+    alpha = initials.default,
+    beta = initials.beta,
+    storage.one = initials.primitive,
+    storage.dummy = initials.primitive) %>%
+    as.list()
+  rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
+    mutate(name = name, tag = as.character(tag), 
+           aic = getaic(length(initial), value))}
 
 # decay split fictitious --------------------------------------------------
 # model <- function(par, a) {

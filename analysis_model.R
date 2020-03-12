@@ -27,7 +27,7 @@ util_aictidy <- function(a = rmodel){
 aictidy <- util_aictidy()
 
 # plot --------------------------------------------------------------------
-fig$deltaaic <- 
+#fig$deltaaic <- 
   aictidy %>%
   ggplot(aes(x = name, y = delta, fill = name, colour = name)) +
   geom_hline(yintercept = 0)+
@@ -52,7 +52,7 @@ fig$deltaaic <-
   scale_y_continuous(trans = 'asinh', 
                      breaks = c(-12^(1:10), 12^(1:10)))
 
-fig$aic <- 
+#fig$aic <- 
   rmodel %>%
   purrr::map(~select(., name, aic, tag)) %>%
   bind_rows() %>%
