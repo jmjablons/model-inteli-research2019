@@ -29,7 +29,7 @@ binal <- function(input, how.long = "2 days", hour = 1, allow.group = T) {
 plotpar <- function(modelname, arg = 'par', 
                     gg.limits = c(0,1), gg.breaks = c(0,1), 
                     include = TRUE,
-                    dat = rmodel, metadata = manimal, 
+                    dat = pubmodel, metadata = manimal, 
                     gg.further = theme_publication){
   if(include){fn = function(pat, x) (grepl(pat, x))
   } else {fn = function(pat, x) !grepl(pat, x)}
@@ -41,7 +41,7 @@ plotpar <- function(modelname, arg = 'par',
     ggplot(aes(x = substance, y = as.numeric(value))) +
     box_default() + median_default + point_default() +
     facet_wrap(~par, scales = "free_y") + 
-    scale_y_continuous(limits = gg.limits, expand = c(0,0), 
+    scale_y_continuous(limits = gg.limits, expand = c(0.03,0), 
                        breaks = gg.breaks) + gg.further +
     theme(axis.title.x = element_blank(),
           axis.title.y = element_blank(),
@@ -532,15 +532,10 @@ fig[[7]] <- p1 + p2 + plot_annotation(tag_levels = "A")
 # fig 7 -------------------------------------------------------------------
 
 temp <- list(
-  name = c("basic", "basic4arm", "zero", "dual", "fictitious", "hybrid", 
-           "forgetful", "noisywinstay", "noisywinstay+", "attention", 
-           "attention+", "decay", "decay*", "decay+", "decay++", 
-           "decayfix", "decayfix*", "decayfix+", 
-           "puzzlementfix","puzzlementfix*", 
-           "puzzlementfix+", "puzzlement", "puzzlement*", 
-           "puzzlement+", "puzzlement++" ,"puzzlement+*", 
-           "reproval", "betadown", "betadown-", "betadown_"),
-  data = util_aictidy(),
+  name = c("basic", "random", "attention", "dual", "fictitious", "hybrid", 
+           "forgetful", "noisywinstay", "q-decay","q-decay*", "q-decay+", 
+           "b-decay","b-decay*", "b-decay+", "relational"),
+  data = util_aictidy(pubmodel),
   plot = list(box_default(), median_default, point_default(), 
               geom_hline(yintercept = 0, linetype = "dotted"),
               theme_publication, 
@@ -553,19 +548,21 @@ temp <- list(
                     legend.position = "none"),
               facet_wrap(~ substance, ncol = 1),
               scale_y_continuous(
-                trans = 'asinh', expand = c(0,0), limits = c(-10^4, 10^4),
-                breaks = c(-(10^(1:9)), 10^(1:9)), 
-                labels = as.character(c(-(1:9), (1:9))))),
-  set = list(general = c("zero", "dual", "fictitious", "hybrid", 
+                trans = 'asinh', 
+                expand = c(0,0), 
+                limits = c(-10^4, 10^4),
+                breaks = c(-(10^(1:4)), 10^(1:4)),
+                labels = scientific_format())),
+  set = list(general = c("random", "dual", "fictitious", "hybrid", 
                          "noisywinstay", "forgetful",  "attention"),
-             time = c("decayfix", "reproval", "decayfix*","decayfix+", 
-                      "puzzlementfix", "puzzlementfix*", 
-                      "puzzlementfix+")))
-temp$util = function(sb, set){temp$data %>%
+             time = c("q-decay", "q-decay*", "q-decay+", 
+                      "b-decay","b-decay*", 
+                      "b-decay*", "relational")),
+  util = function(sb, set){temp$data %>%
     filter(substance == sb) %>%
     mutate(name = factor(name, levels = temp$name, ordered = T)) %>%
     filter(name %in% temp$set[[set]]) %>%
-    ggplot(aes(x = name, y = delta)) + temp$plot}
+    ggplot(aes(x = name, y = delta)) + temp$plot})
 
 # general
 p1 <- temp$util("alcohol","general")
@@ -588,45 +585,37 @@ p8 <- temp$util("water","time")
 fig[[8]] <- ((p1 | p5) / (p2 | p6) / (p3 | p7) / (p4 | p8)) +
   plot_annotation(tag_levels = "A")    
 
+#fig[["8.previous"]] <- fig[[8]]
+
 # fig 8 -------------------------------------------------------------------
 # parameters
-gg$show.beta <- c(0, 5, 10, 25, 50) 
+gg$show.beta <- c(0, 5, 15, 50) 
+
+p1 <- plotpar("basic", "alpha", c(0,1), c(0, .5, 1))
+
+p2 <- plotpar("fictitious", "alpha", c(0,1), c(0, .5, 1)) +
+  util_signif(c(1,2), .95) 
+
+p3 <- plotpar("b-decay*", "alpha", c(0,1), c(0, .5, 1))+
+  util_signif(c(1,2), .95)
+
+p4 <- plotpar("basic", "beta", c(0,50), gg$show.beta) +
+  util_signif(c(1,4), 49) +
+  util_signif(c(3,4), 45) 
+
+p5 <- plotpar("fictitious", "beta", c(0,50), gg$show.beta) +
+  util_signif(c(1,2),47)+
+  util_signif(c(1,4), 49)+
+  util_signif(c(3,4), 48) 
+
+p6 <- plotpar("b-decay*", "beta", c(0,50), gg$show.beta)+
+  util_signif(c(3,4), 47)
+
+p7 <- plotpar("b-decay*", "bdecay", c(0,.2), c(0, .2))+
+  util_signif(c(3,4), .17, y.space = .01) 
 
 
-fig[[9]] <- (
-  (
-    plotpar("basic", "alpha", c(0,1), c(0, .5, 1)) |
-      plotpar("basic", "beta", c(0,50), gg$show.beta) +
-      util_signif(c(1,4), 49)+
-      util_signif(c(3,4), 45)
-      # plotpar("puzzlementfix", "alpha", c(0,1), c(0, .5, 1)) |
-      # plotpar("puzzlementfix", "beta", c(0,50), gg$show.beta)+
-      # util_signif(c(1,4), 49)+
-      # util_signif(c(3,4), 48) |
-      # plotpar("puzzlementfix", "bdecay", c(0,.2), c(0, .2))+
-      # util_signif(c(1,3), .18) 
-  ) / (
-      plotpar("fictitious", "alpha", c(0,1), c(0, .5, 1)) +
-       util_signif(c(1,2), .95) |
-       plotpar("fictitious", "beta", c(0,50), gg$show.beta) +
-        util_signif(c(1,2),47)+
-        util_signif(c(1,4), 49)+
-        util_signif(c(2,4), 48) 
-    ) / (
-      plotpar("puzzlementfix*", "alpha", c(0,1), c(0, .5, 1))+
-        util_signif(c(1,4), .9)+
-        util_signif(c(3,4), .8) |
-        plotpar("puzzlementfix*", "beta", c(0,50), gg$show.beta)+
-        util_signif(c(1,4), 47) |
-        plotpar("puzzlementfix*", "bdecay", c(0,.2), c(0, .2))+
-        util_signif(c(1,4), .18)+
-        util_signif(c(3,4), .17)
-    ) / (
-      plotpar("decayfix", "alpha", c(0,1), c(0, .5, 1)) |
-        plotpar("decayfix", "beta", c(0,50), gg$show.beta) |
-        plotpar("decayfix", "storage", c(0,1), c(0, .5, 1))
-    ) 
-) + plot_annotation(tag_levels = "A")
+fig[[9]] <- (p1 + p4) / (p2 + p5) / (p3 + p6 + p7) + plot_annotation(tag_levels = "A")
 
 # fig 9 -------------------------------------------------------------------
 
