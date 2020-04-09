@@ -47,9 +47,10 @@ library(dplyr)
 rmodel <- list()
 
 # variables ---------------------------------------------------------------
-initials.beta = seq(0.25, 15, by = 0.50)
-initials.default = seq(0.05, 1, by = 0.05)
-initials.primitive = seq(0, 1, by = 0.05)
+init <- list(
+  default = seq(0.05, 1, by = 0.05),
+  beta = seq(0.25, 15, by = 0.50),
+  primitive = seq(0, 1, by = 0.05))
 
 # bandit4arm
 dmodel4arm <- dall
@@ -384,6 +385,51 @@ model <- function(par, a) {
     mutate(name = name, tag = as.character(tag), 
            aic = getaic(length(initial), value))}
 
+
+# decay true --------------------------------------------------------------
+model <- function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 1 |
+      par[2] < 0 | par[2] > 50 | 
+      par[3] < 0 | par[3] > 1) {
+    nll = Inf
+  } else {
+    Q = c(0, 0)
+    date = rep(a$start[1], 2)
+    t = c(0, 0)
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner/2)
+    nows.start = a$start
+    nows.end = a$end
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      now.start = nows.start[i]
+      now.end = nows.end[i]
+      t = as.numeric(difftime(now.start, date, units = 'mins'))
+      t = ifelse(t > 660, 660, t)
+      date[s] = now.end
+      Q = exp( -(t) * par[3] ) * Q
+      P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+      if(P[s] < .001){P[s] = .001}
+      if(P[s] > .999){P[s] = .999}
+      nll = -log(P[s]) + nll
+      pe = r - Q[s]
+      Q[s] = Q[s] + (par[1] * pe)}}
+  nll}
+
+{name = "decaytrue"
+  initial <- expand.grid(
+    alpha = initials.default,
+    beta = initials.beta,
+    storage = initials.primitive) %>%
+    as.list()
+  rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
+    mutate(name = name, tag = as.character(tag), 
+           aic = getaic(length(initial), value))}
+
 # decay fictitious --------------------------------------------------------
 # model <- function(par, a) {
 #   a = a[with(a, order(start)), ]
@@ -421,16 +467,16 @@ model <- function(par, a) {
 #       Q[-s] = Q[-s] + (par[1] * pe)}}
 #   nll}
 
-# decay fix fictitious ----------------------------------------------------
+
+# decay true fictitious ---------------------------------------------------
 model <- function(par, a) {
   a = a[with(a, order(start)), ]
   nll = 0
   if (par[1] < 0 | par[1] > 1 |
-      par[2] < 0 | par[2] > 50 |
+      par[2] < 0 | par[2] > 50 | 
       par[3] < 0 | par[3] > 1) {
     nll = Inf
   } else {
-    tempQ = c()
     Q = c(0, 0)
     date = rep(a$start[1], 2)
     t = c(0, 0)
@@ -439,7 +485,6 @@ model <- function(par, a) {
     sides = ceiling(a$corner/2)
     nows.start = a$start
     nows.end = a$end
-    rew = c(0,0)
     for (i in seq_along(sides)) {
       r = rewards[i]
       s = sides[i]
@@ -448,19 +493,17 @@ model <- function(par, a) {
       t = as.numeric(difftime(now.start, date, units = 'mins'))
       t = ifelse(t > 660, 660, t)
       date[s] = now.end
-      Q[s] = exp( -(t[s]) * par[3] ) * Q[s]
-      tempQ = exp( -(t[-s]) * par[3] ) * Q[-s]
-      P[s] = exp(par[2] * Q[s]) / 
-        (sum(exp(par[2] * Q[s]), exp(par[2] * tempQ)))
+      Q = exp( -(t) * par[3] ) * Q
+      P = exp(par[2] * Q) / sum(exp(par[2] * Q))
       if(P[s] < .001){P[s] = .001}
       if(P[s] > .999){P[s] = .999}
       nll = -log(P[s]) + nll
       pe = r - Q[s]
       Q[s] = Q[s] + (par[1] * pe)
-      Q[-s] = Q[-s] + (par[1] * pe)}}
+      Q[-s] = Q[-s] - (par[1] * pe)}}
   nll}
 
-{name = "decayfix*"
+{name = "decaytrue*"
   initial <- expand.grid(
     alpha = initials.default,
     beta = initials.beta,
@@ -469,6 +512,56 @@ model <- function(par, a) {
   rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
     mutate(name = name, tag = as.character(tag), 
            aic = getaic(length(initial), value))}
+
+
+# decay fix fictitious ----------------------------------------------------
+# model <- function(par, a) {
+#   a = a[with(a, order(start)), ]
+#   nll = 0
+#   if (par[1] < 0 | par[1] > 1 |
+#       par[2] < 0 | par[2] > 50 |
+#       par[3] < 0 | par[3] > 1) {
+#     nll = Inf
+#   } else {
+#     tempQ = c()
+#     Q = c(0, 0)
+#     date = rep(a$start[1], 2)
+#     t = c(0, 0)
+#     P <- vector()
+#     rewards = a$dooropened
+#     sides = ceiling(a$corner/2)
+#     nows.start = a$start
+#     nows.end = a$end
+#     rew = c(0,0)
+#     for (i in seq_along(sides)) {
+#       r = rewards[i]
+#       s = sides[i]
+#       now.start = nows.start[i]
+#       now.end = nows.end[i]
+#       t = as.numeric(difftime(now.start, date, units = 'mins'))
+#       t = ifelse(t > 660, 660, t)
+#       date[s] = now.end
+#       Q[s] = exp( -(t[s]) * par[3] ) * Q[s]
+#       tempQ = exp( -(t[-s]) * par[3] ) * Q[-s]
+#       P[s] = exp(par[2] * Q[s]) / 
+#         (sum(exp(par[2] * Q[s]), exp(par[2] * tempQ)))
+#       if(P[s] < .001){P[s] = .001}
+#       if(P[s] > .999){P[s] = .999}
+#       nll = -log(P[s]) + nll
+#       pe = r - Q[s]
+#       Q[s] = Q[s] + (par[1] * pe)
+#       Q[-s] = Q[-s] + (par[1] * pe)}}
+#   nll}
+# 
+# {name = "decayfix*"
+#   initial <- expand.grid(
+#     alpha = initials.default,
+#     beta = initials.beta,
+#     storage = initials.primitive) %>%
+#     as.list()
+#   rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
+#     mutate(name = name, tag = as.character(tag), 
+#            aic = getaic(length(initial), value))}
 
 
 # decay fix split ---------------------------------------------------------

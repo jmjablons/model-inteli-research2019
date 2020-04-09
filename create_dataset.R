@@ -12,9 +12,7 @@ dall <-
 
 dmodel <-
   dall %>%
-  filter(info == 'reversal',
-         rp > 0, 
-         visitduration > 2) %>%
+  filter(info == 'reversal', rp > 0, visitduration > 2) %>%
   group_by(tag) %>%
   arrange(tag, start, .by_group = T) %>%
   mutate(
@@ -38,3 +36,9 @@ dall %>%
   filter(visitduration > 3600) %>% 
   mutate(vis = as.numeric(visitduration)/3600) %>%
   select(vis, tag, contingency, start, end, exp)
+
+# import rds --------------------------------------------------------------
+#dall <- readRDS(file.choose())
+
+# export data -------------------------------------------------------------
+#saveRDS(manimal, "data/manimal.rds")

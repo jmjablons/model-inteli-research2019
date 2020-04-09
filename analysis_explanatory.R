@@ -3,6 +3,37 @@
 # dependency --------------------------------------------------------------
 library(boot)
 
+util_outline <- function(x, na.omit = T){
+  temp <- quantile(x, na.rm = na.omit)
+  list(median = median(x, na.rm = na.omit), iqr25 = temp[[2]], 
+       igr75 = temp[[4]])}
+
+
+# summary activity --------------------------------------------------------
+dmodel %>%
+  group_by(tag) %>%
+  summarise(value = n()) %>%
+  left_join(manimal) %>%
+  group_by(substance) %>%
+  summarise(median = median(value, na.rm = T),
+            iqr25 = quantile(value,na.rm = T)[[2]],
+            iqr75 = quantile(value, na.rm = T)[[4]],
+            min = min(value, na.rm = T),
+            max = max(value, na.rm = T))
+
+dall %>%
+  filter(info %in% "reversal") %>%
+  filter(as.numeric(visitduration) > 2) %>%
+  group_by(tag) %>%
+  summarise(value = n()) %>%
+  left_join(manimal) %>%
+  group_by(substance) %>%
+  summarise(median = median(value, na.rm = T),
+            iqr25 = quantile(value,na.rm = T)[[2]],
+            iqr75 = quantile(value, na.rm = T)[[4]],
+            min = min(value, na.rm = T),
+            max = max(value, na.rm = T))
+
 # substance preference ----------------------------------------------------
 getPreference <- function(n.hours = 96, period.info = "adaptation", a = dall){
   period <- a %>%
@@ -25,6 +56,19 @@ getPreference <- function(n.hours = 96, period.info = "adaptation", a = dall){
 
 result$preference <- getPreference()
 
+getPreference() %>%
+  left_join(manimal, by = "tag") %>%
+  group_by(substance) %>%
+  summarise(median = median(value, na.rm = T),
+            iqr25 = quantile(value, na.rm = T)[[2]],
+            iqr75 = quantile(value, na.rm = T)[[4]])
+
+result$preference %>%
+  left_join(select(manimal, tag, substance), by = "tag") %>%
+  group_by(substance) %>%
+  summarise(n = length(which(value < 0.5)),
+            total = n()) %>% View()
+
 # better ratio ------------------------------------------------------------
 result$br <- dall %>%
   filter(info %in% "reversal") %>%
@@ -35,15 +79,29 @@ result$br <- dall %>%
             nworse = length(which(rp > 0.0 & rp < 0.5)),
             value = nbetter / (nbetter + nworse))
 
+result$br%>%
+  left_join(manimal, by = "tag") %>%
+  group_by(substance) %>%
+  summarise(median = median(value, na.rm = T),
+            iqr25 = quantile(value, na.rm = T)[[2]],
+            iqr75 = quantile(value, na.rm = T)[[4]])
+
 # stat --------------------------------------------------------------------
 substances <- unique(temp$substance)
 
 #choices
+temp <- dmodel %>%
+  group_by(tag) %>%
+  summarise(value = n()) %>%
+  left_join(manimal) %>%
+  mutate(substance = as.factor(substance))
+
 temp <- dall %>%
-  filter(info == 'reversal') %>%
-  group_by(tag) %>% 
-  summarise(value = length(which(rp > 0 & visitduration > 2))) %>%
-  ungroup() %>%
+  filter(info %in% "reversal") %>%
+  filter(as.numeric(visitduration) > 2) %>%
+  filter(rp > 0) %>%
+  group_by(tag) %>%
+  summarise(value = n()) %>%
   left_join(manimal) %>%
   mutate(substance = as.factor(substance))
 
@@ -64,13 +122,14 @@ wrap_winstay <- function(substance, what){
     tidyr::spread(short, value)}
 
 # model parameters
-temp <- rmodel[["puzzlement*"]] %>%
+temp <- pubmodel[["fictitious"]] %>%
   left_join(manimal) %>%
   mutate(substance = as.factor(substance),
-         value = par.alpha)
+         value = par.beta)
 
 ## variance between groups
-kruskal.test(data = temp, value ~ substance)$p.value %>%
+kruskal.test(data = temp, value ~ substance)
+$p.value %>%
   format(scientific = F, digits = 3)
 FSA::dunnTest(data = temp, value ~ substance, method="bh")
 format(5.546344e-01, scientific = F)
@@ -79,7 +138,7 @@ format(5.546344e-01, scientific = F)
 for(i in seq_along(substances)){
   with(temp, {print(
     wilcox.test(value[substance == substances[i]], 
-                mu = 0.5, alternative = 'greater')$p.value %>%
+                mu = .5, alternative = 'greater')$p.value %>%
       format(scientific = F, digits = 3))})}
 
 ## between two groups
@@ -159,3 +218,37 @@ modelStay2 <- function(mouse, a = dmodel, k.fold = 10) {
 
 result$glm <- lapply(setdiff(unique(dmodel$tag), outlier), 
                       function(x) {modelStay2(x)}) %>% bind_rows()
+
+result$glm %>%
+  left_join(manimal, by="tag") %>%
+  filter(substance %in% "alcohol+saccharin") %>%
+  filter(predictor %in% "intervala") %>%
+  summarise(plus = length(which(sig > 0)),
+            total = n())
+
+result$glm %>%
+  select(tag, predictor, sig) %>%
+  tidyr::spread(predictor, sig) %>%
+  left_join(manimal %>% select(tag, substance)) %>% 
+  mutate(intercept = ifelse(dooropened1 > 0 & intervala >0, 1, 0)) %>%
+  group_by(substance)%>%
+  summarise(intercept = sum(intercept, na.rm = T),
+            reward = sum(dooropened1),
+            interval = sum(intervala),
+            total = n())
+
+# visits while dark -------------------------------------------------------
+dall %>%
+  filter(info %in% "reversal") %>%
+  left_join(manimal) %>%
+  arrange(start) %>%
+  mutate(cohort = gg$cohort$label[match(exp, gg$cohort$exp)],
+         gr = paste(substance, cohort, sep = " ")) %>%
+  group_by(gr) %>%
+  binal(allow.group = T) %>%
+  ungroup() %>%
+  filter(hour(start) %in% c(0:6, 20:24)) %>%
+  group_by(gr, corner, bin) %>%
+  summarise(sumvisit = sum(visitduration, na.rm = T),
+            measure = (sumvisit / (24 * 60 * 60)) * 100) %>% View()
+  summarise(min = min(measure), max = max(measure)) %>% View()

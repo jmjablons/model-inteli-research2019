@@ -29,6 +29,7 @@ aictidy <- util_aictidy()
 # plot --------------------------------------------------------------------
 #fig$deltaaic <- 
   aictidy %>%
+  filter(name %in% c("decayfix", "q-decay2")) %>%
   ggplot(aes(x = name, y = delta, fill = name, colour = name)) +
   geom_hline(yintercept = 0)+
   geom_boxplot(
@@ -188,3 +189,34 @@ rmodel %>%
   purrr::map(~tidyr::gather(., measure, value, -tag, -name)) %>%
   dplyr::bind_rows() %>%
   saveRDS('data/model_result.rds')
+
+
+# compare results ---------------------------------------------------------
+
+# nll
+temp_nll <- rmodel[["decayfix"]] %>% select(tag, fx = value) %>%
+  left_join((rmodel[["decay2"]] %>% select(tag, tr = value))) %>% 
+  mutate(diff = `-`(fx, tr))
+
+hist(temp_nll$diff, freq = T, breaks = 120)
+boxplot(abs(temp$diff))
+
+temp_nll %>% View()
+
+# parameters
+temp <- rmodel[["decayfix"]] %>% select(tag, fix = grep('par', colnames(.))) %>% 
+  left_join(rmodel[["decaytrue"]] %>% select(tag, true = grep('par', colnames(.))))
+
+hist(abs(temp$fix1 - temp$true1), freq = T, breaks = 1200)
+plot(x = temp$fix2, y = temp$fix1)
+plot(x = temp$true2, y = temp$true1)
+
+
+library(ggplot2)
+temp %>% select(tag, fix2, true2) %>% tidyr::gather(param, value, -tag) %>%
+  mutate(dot = ifelse(tag == "900110000324268", T, F)) %>%
+  left_join(manimal) %>%
+  ggplot(aes(x = param, y = value, group = tag, colour = dot)) + 
+  geom_line(alpha = .3) + facet_wrap(~substance, nrow = 1) + theme_minimal() +
+  scale_color_manual(values = c("black", "red")) + 
+  theme(legend.position = "none")
