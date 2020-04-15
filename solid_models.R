@@ -558,30 +558,3 @@ pubmodel[["random"]] <- dmodel %>%
   group_by(tag) %>%
   summarise(n = length(corner)) %>%
   mutate(name = "random", aic = getaic(0, n * -log(0.5)))
-
-# explanatory short -------------------------------------------------------
-pubmodel %>%
-  purrr::map(~select(., tag, aic, name)) %>%
-  dplyr::bind_rows() %>%
-  group_by(tag) %>%
-  summarise(top = name[aic == min(aic)],
-            value = min(aic)) %>%
-  left_join(manimal %>% select(tag, substance)) %>%
-  group_by(substance, top) %>%
-  summarise(n = n()) %>% 
-  mutate(max = sum(n)) %>% View()
-  
-pubmodel %>%
-  purrr::map(~select(., tag, aic, name)) %>%
-  dplyr::bind_rows() %>%
-  group_by(tag, name) %>%
-  arrange(aic, .by_group = T) %>%
-  summarise(value = head(aic)[1]) %>%
-  arrange(value, .by_group = T) %>%
-  slice(1:2, .preserve = T) %>%
-  summarise(
-    what = paste0(unique(name), collapse = " - "),
-            dif = value[1] - value[2]) %>%
-  left_join(manimal %>% select(tag, substance)) %>%
-  group_by(substance) %>%
-  summarise(median(dif))
