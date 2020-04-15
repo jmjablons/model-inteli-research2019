@@ -5,10 +5,12 @@ library(dplyr)
 # create dataset ----------------------------------------------------------
 dall <- 
   do.call(rbind, list(d1,d2,d3,d4)) %>%
+  filter(tag %in% with(manimal, {tag[strain == "C57BL6N"| 
+                                       is.na(strain)]})) %>%
+  filter(tag != "900110000324267") %>% #lost transponder 
   mutate(visitduration = difftime(end, start, units = "sec"),
          dooropened = as.integer(dooropened),
-         corner = as.integer(corner)) %>%
-  filter(tag %in% manimal$tag)
+         corner = as.integer(corner)) 
 
 dmodel <-
   dall %>%
