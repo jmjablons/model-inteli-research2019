@@ -1428,3 +1428,55 @@ model <- function(par, a) {
   rmodel[[name]] <- wrapmodel(initial) %>% as_tibble() %>%
     mutate(name = name, tag = as.character(tag), 
            aic = getaic(length(initial), value))}
+
+# noisy win-stay + interval -----------------------------------------------
+model <- 
+  function(par, a) {
+    a = a[with(a, order(start)), ]
+    nll = 0
+    if (par[1] < 0.001 | par[1] > 1.999 |
+        par[2] < 0.001 | par[2] > 1.999 |
+        par[3] < 1 | par[3] > 10) {
+      nll = Inf
+    } else {
+      P <- vector()
+      rewards = a$dooropened
+      sides = ceiling(a$corner/2)
+      previous.rewards = lag(rewards)
+      previous.sides = lag(sides)
+      inter = a$intervalb
+      for (i in seq_along(sides)) {
+        r = previous.rewards[i]
+        c = previous.sides[i]
+        k = sides[i]
+        int = inter[i]
+        stay = c == k
+        win = r == 1
+        if(i == 1){ P[k] = .5
+        } else {
+          if(int > par[3]){
+            if((win & stay) | (!win & !stay)){ 
+              P[k] = 1 - par[1]/2 
+              if(P[k] < .001){P[k] = .001}
+              if(P[k] > .999){P[k] = .999}} 
+            if((win & !stay)| (!win & stay)){ 
+              P[k] = 0 + par[1]/2 
+              if(P[k] < .001){P[k] = .001}
+              if(P[k] > .999){P[k] = .999}}
+          } else {
+            if((win & stay) | (!win & !stay)){ 
+              P[k] = 1 - par[2]/2 
+              if(P[k] < .001){P[k] = .001}
+              if(P[k] > .999){P[k] = .999}} 
+            if((win & !stay)| (!win & stay)){ 
+              P[k] = 0 + par[2]/2 
+              if(P[k] < .001){P[k] = .001}
+              if(P[k] > .999){P[k] = .999}}
+          }}
+        nll = -log(P[k]) + nll}}
+    nll}
+
+pubmodel[["noisywinstay+interval"]] <- util_wrap("noisywinstay+interval",
+                                                 epsilon.long = seq(0.002, 1.999, 0.01),
+                                                 epsilon.short = seq(0.002, 1.999, 0.01),
+                                                 interval.point = seq(1, 10, 0.1))

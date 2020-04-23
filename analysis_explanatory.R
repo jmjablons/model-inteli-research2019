@@ -48,11 +48,12 @@ result$preference %>%
 result$br <- dall %>%
   filter(info %in% "reversal") %>%
   filter(label %in% c("0x0.3x0.9")) %>%
-  group_by(tag) %>%
+  group_by(tag, exp) %>%
   summarise(n = n(),
             nbetter = length(which(rp > 0.5)),
             nworse = length(which(rp > 0.0 & rp < 0.5)),
-            value = nbetter / (nbetter + nworse))
+            value = nbetter / (nbetter + nworse)) %>%
+  ungroup()
 
 result$br%>%
   left_join(manimal, by = "tag") %>%
@@ -66,10 +67,13 @@ substances <- unique(manimal$substance)
 
 #choices
 temp <- dmodel %>%
-  group_by(tag) %>%
+  group_by(tag, exp) %>%
   summarise(value = n()) %>%
+  ungroup() %>%
   left_join(manimal) %>%
-  mutate(substance = as.factor(substance))
+  mutate(cohort = gg$cohort$label[match(exp, gg$cohort$exp)],
+         gr = paste(substance, cohort, sep = " ")) %>%
+  mutate(substance = as.factor(gr))
 
 temp <- dall %>%
   filter(info %in% "reversal") %>%
@@ -85,10 +89,19 @@ temp <- util$getpreference() %>%
   left_join(manimal) %>%
   mutate(substance = as.factor(substance))
 
+temp <- util$getpreference() %>%
+  left_join(manimal, "tag") %>%
+  mutate(cohort = gg$cohort$label[match(exp, gg$cohort$exp)],
+         gr = paste(substance, cohort, sep = " ")) %>%
+  mutate(substance = as.factor(gr))
+
 # better ratio
 temp <- result$br %>%
   left_join(manimal) %>%
   mutate(substance = as.factor(substance))
+
+temp <- result$br %>%
+  util$assign_cohort()
 
 # win-stay
 wrap_winstay()
@@ -96,10 +109,12 @@ wrap_winstay()
 # model parameters
 temp <- util$get("basic","par.beta", "saccharin")
 
+
 ## variance between groups
 kruskal.test(data = temp, value ~ substance)
 #$p.value %>% format(scientific = F, digits = 3)
-FSA::dunnTest(data = temp, value ~ substance, method="bh")
+FSA::dunnTest(data = temp, value ~ substance, method="bh")$res %>%
+  filter(P.adj < 0.05)
 
 ## greater than random
 for(i in seq_along(substances)){
@@ -192,7 +207,7 @@ result$glm <- lapply(setdiff(unique(dmodel$tag), outlier),
 
 result$glm %>%
   left_join(manimal, by="tag") %>%
-  filter(substance %in% "alcohol+saccharin") %>%
+  filter(substance %in% substances[-4]) %>%
   filter(predictor %in% "intervala") %>%
   summarise(plus = length(which(sig > 0)),
             total = n())
@@ -234,9 +249,12 @@ dall %>%
     summarise(top = name[aic == min(aic)],
               value = min(aic)) %>%
     left_join(manimal %>% select(tag, substance)) %>%
-    group_by(substance, top) %>%
+    #group_by(substance, top) %>%
+    group_by(top, substance) %>%
     summarise(n = n()) %>% 
-    mutate(max = sum(n)) %>% View()
+    mutate(max = sum(n)) %>% 
+    arrange(-n, .by_group = TRUE) %>%
+    ungroup() %>% View()
   
   pubmodel %>%
     purrr::map(~select(., tag, aic, name)) %>%
@@ -253,11 +271,38 @@ dall %>%
     group_by(substance) %>%
     summarise(median(dif))  
   
+  pubmodel %>%
+    util$waic() %>%
+  left_join(manimal) %>%
+    filter(substance %in% substances) %>%
+    filter(name %in% "fictitious") %>%
+    left_join(dmodel %>% group_by(tag,exp) %>% summarise()) %>%
+    ungroup() %>%
+    mutate(exp = as.factor(exp),
+           substance = as.factor(substance)) %>%
+    select(tag, substance, exp, value = "waic") %>%
+    group_by(substance) %>%
+    summarise(median(value), quantile(value)[2], quantile(value)[4])
+  
+  pubmodel %>%
+    util$waic() %>%
+    left_join(manimal) %>%
+    filter(substance %in% "water") %>%
+    left_join(dmodel %>% group_by(tag,exp) %>% summarise()) %>%
+    ungroup() %>%
+    mutate(exp = as.factor(exp),
+           substance = as.factor(substance)) %>%
+    select(tag, name, substance, exp, value = "waic") %>%
+    group_by(name, substance) %>%
+    summarise(median = round(median(value*100), 5), 
+              rst = round(quantile(value*100),5)[2],
+              rth = round(quantile(value*100),5)[4])
+  
 #prepare table
   temp <- list()
-  temp$name = c("basic", "random", "attention", "dual", "fictitious", "hybrid", 
-                       "forgetful", "noisywinstay", "q-decay","q-decay*", "q-decay+", 
-                       "b-decay","b-decay*", "b-decay+", "relational")
+  temp$name = c("random","noisywinstay","basic",  "dual", "fictitious", "hybrid", 
+                "attention","forgetful",  "q-decay",
+                "q-decay*", "q-decay+", "b-decay","b-decay*", "b-decay+")
   temp$result <- pubmodel %>%
     purrr::map(~ select(., tag, name, aic, contains("par.")) %>%
                  tidyr::gather(param, value, -tag, -name) %>%
@@ -269,13 +314,24 @@ dall %>%
                  ungroup()) %>%
     bind_rows() %>%
     group_by(name, param, substance) %>%
-    summarise(result = paste0(util$format_digit(med), 
-                           " (", util$format_digit(low), ", ", 
-                           util$format_digit(upp), ")", collapse = "")) %>%
+    summarise(result = paste0(util$format_digit(med, 3), 
+                           " (", util$format_digit(low, 3), ", ", 
+                           util$format_digit(upp, 3), ")", collapse = "")) %>%
     ungroup() %>%
     spread(substance, result) %>%
     mutate(name = factor(name, levels = temp$name, ordered = T)) %>%
     arrange(name)
 
   xlsx::write.xlsx2(temp$result, 'fig/table2.xls')
+  
+# hero info ---------------------------------------------------------------
+dmodel %>%
+    filter(tag%in%hero)%>%
+    group_by(dooropened) %>%
+    summarise(n(), value = length(which(intervala > exp(-3.507) & 
+                                          intervala < exp(7))))
+
+# combo plot --------------------------------------------------------------
+
+
   
