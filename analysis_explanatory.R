@@ -1,7 +1,12 @@
 result <- list()
 
-# dependency --------------------------------------------------------------
-library(boot)
+# metadata ----------------------------------------------------------------
+copy_manimal
+manimal 
+
+# variables ---------------------------------------------------------------
+substances <- unique(manimal$substance)
+outlier <- c("900110000199391", "900110000199541") #check glm
 
 # summary activity --------------------------------------------------------
 dmodel %>%
@@ -62,9 +67,7 @@ result$br%>%
             iqr25 = quantile(value, na.rm = T)[[2]],
             iqr75 = quantile(value, na.rm = T)[[4]])
 
-# stat --------------------------------------------------------------------
-substances <- unique(manimal$substance)
-
+# input -------------------------------------------------------------------
 #choices
 temp <- dmodel %>%
   group_by(tag, exp) %>%
@@ -105,11 +108,17 @@ temp <- result$br %>%
 
 # win-stay
 wrap_winstay()
+util$wrap_winstay()
 
 # model parameters
-temp <- util$get("basic","par.beta", "saccharin")
+temp <- util$get("fictitious","par.beta", "saccharin")
 
+temp <- pubmodel[["fictitious"]] %>%
+  select(value = par.beta, tag) %>%
+  left_join(manimal, by = "tag") %>%
+  mutate(substance = as.factor(gr))
 
+# stat --------------------------------------------------------------------
 ## variance between groups
 kruskal.test(data = temp, value ~ substance)
 #$p.value %>% format(scientific = F, digits = 3)
@@ -121,15 +130,14 @@ for(i in seq_along(substances)){
   with(temp, {print(
     wilcox.test(value[substance == substances[i]], 
                 mu = .5, alternative = 'greater')
-    #$p.value %>%
-    #  format(scientific = F, digits = 3)
+    #$p.value %>% format(scientific = F, digits = 3)
       )})}
 
 ## between two groups
-with(wrap_winstay("water", "lose-shift"), {
-  wilcox.test(`[<2]`, `[>10]`, paired = T, conf.int = T)})
-
 with(temp, {wilcox.test(value ~ exp, conf.int = T)})
+
+with(util$wrap_winstay("water", "lose-shift"), {
+  wilcox.test(`<2`, `>10`, paired = T, conf.int = T)})
 
 ## size effect
 {tsub = 2; tref = 1
@@ -138,14 +146,12 @@ with(temp, {effsize::cohen.d(
     lickpreference[substance == substances[tref]])})}
 
 # glm win-stay behaviour --------------------------------------------------
-
 ## check for contrasts
 # lapply(X = unique(dmodel$tag), function(a){dmodel[dmodel$tag == a,] %>%
 #     group_by(tag, corner) %>% summarise(N = n())}) %>% bind_rows() %>%
 #   tidyr::spread(corner, N) %>% View()
 ## gives:
 # not enough trials for each corner:
-outlier <- c("900110000199391", "900110000199541")
 
 get_errorrate <- function(real.data, predict.data) {
     real.data = as.vector(as.logical(real.data))
@@ -231,7 +237,7 @@ dall %>%
   mutate(cohort = gg$cohort$label[match(exp, gg$cohort$exp)],
          gr = paste(substance, cohort, sep = " ")) %>%
   group_by(gr) %>%
-  binal(allow.group = T) %>%
+  util$binal(allow.group = T) %>%
   ungroup() %>%
   filter(hour(start) %in% c(0:6, 20:24)) %>%
   group_by(gr, corner, bin) %>%
@@ -239,12 +245,12 @@ dall %>%
             measure = (sumvisit / (24 * 60 * 60)) * 100) %>% View()
   summarise(min = min(measure), max = max(measure)) %>% View()
 
-
 # pubmodel ----------------------------------------------------------------
   # explanatory short #
   pubmodel %>%
     purrr::map(~select(., tag, aic, name)) %>%
     dplyr::bind_rows() %>%
+    filter(name %in% c(temp_names$name, "basic")) %>%
     group_by(tag) %>%
     summarise(top = name[aic == min(aic)],
               value = min(aic)) %>%
@@ -252,6 +258,7 @@ dall %>%
     #group_by(substance, top) %>%
     group_by(top, substance) %>%
     summarise(n = n()) %>% 
+    group_by(substance) %>%
     mutate(max = sum(n)) %>% 
     arrange(-n, .by_group = TRUE) %>%
     ungroup() %>% View()
@@ -259,6 +266,22 @@ dall %>%
   pubmodel %>%
     purrr::map(~select(., tag, aic, name)) %>%
     dplyr::bind_rows() %>%
+    filter(name %in% c(temp_names$name, "basic")) %>%
+    group_by(tag) %>%
+    summarise(top = name[aic == min(aic)],
+              value = min(aic)) %>%
+    left_join(manimal %>% select(tag, substance)) %>%
+    #group_by(substance, top) %>%
+    group_by(top) %>%
+    summarise(n = n()) %>% 
+    mutate(max = sum(n)) %>% 
+    arrange(-n, .by_group = TRUE) %>%
+    ungroup()
+  
+  pubmodel %>%
+    purrr::map(~select(., tag, aic, name)) %>%
+    dplyr::bind_rows() %>%
+    filter(name %in% c(temp_names$name, "basic")) %>%
     group_by(tag, name) %>%
     arrange(aic, .by_group = T) %>%
     summarise(value = head(aic)[1]) %>%
@@ -271,67 +294,56 @@ dall %>%
     group_by(substance) %>%
     summarise(median(dif))  
   
-  pubmodel %>%
-    util$waic() %>%
-  left_join(manimal) %>%
-    filter(substance %in% substances) %>%
-    filter(name %in% "fictitious") %>%
-    left_join(dmodel %>% group_by(tag,exp) %>% summarise()) %>%
-    ungroup() %>%
-    mutate(exp = as.factor(exp),
-           substance = as.factor(substance)) %>%
-    select(tag, substance, exp, value = "waic") %>%
-    group_by(substance) %>%
-    summarise(median(value), quantile(value)[2], quantile(value)[4])
-  
-  pubmodel %>%
-    util$waic() %>%
-    left_join(manimal) %>%
-    filter(substance %in% "water") %>%
-    left_join(dmodel %>% group_by(tag,exp) %>% summarise()) %>%
-    ungroup() %>%
-    mutate(exp = as.factor(exp),
-           substance = as.factor(substance)) %>%
-    select(tag, name, substance, exp, value = "waic") %>%
-    group_by(name, substance) %>%
-    summarise(median = round(median(value*100), 5), 
-              rst = round(quantile(value*100),5)[2],
-              rth = round(quantile(value*100),5)[4])
-  
-#prepare table
-  temp <- list()
-  temp$name = c("random","noisywinstay","basic",  "dual", "fictitious", "hybrid", 
-                "attention","forgetful",  "q-decay",
-                "q-decay*", "q-decay+", "b-decay","b-decay*", "b-decay+")
-  temp$result <- pubmodel %>%
-    purrr::map(~ select(., tag, name, aic, contains("par.")) %>%
-                 tidyr::gather(param, value, -tag, -name) %>%
-                 left_join(manimal %>% select(tag, substance), by = "tag") %>%
-                 group_by(name, param, substance) %>%
-                 summarise(med = median(value, na.rm = T),
-                           low = quantile(value, na.rm = T)[2],
-                           upp = quantile(value, na.rm = T)[4]) %>%
-                 ungroup()) %>%
-    bind_rows() %>%
-    group_by(name, param, substance) %>%
-    summarise(result = paste0(util$format_digit(med, 3), 
-                           " (", util$format_digit(low, 3), ", ", 
-                           util$format_digit(upp, 3), ")", collapse = "")) %>%
-    ungroup() %>%
-    spread(substance, result) %>%
-    mutate(name = factor(name, levels = temp$name, ordered = T)) %>%
-    arrange(name)
+  # pubmodel %>%
+  #   util$waic() %>%
+  # left_join(manimal) %>%
+  #   filter(substance %in% substances) %>%
+  #   filter(name %in% "fictitious") %>%
+  #   left_join(dmodel %>% group_by(tag,exp) %>% summarise()) %>%
+  #   ungroup() %>%
+  #   mutate(exp = as.factor(exp),
+  #          substance = as.factor(substance)) %>%
+  #   select(tag, substance, exp, value = "waic") %>%
+  #   group_by(substance) %>%
+  #   summarise(median(value), quantile(value)[2], quantile(value)[4])
+  # 
+  # pubmodel %>%
+  #   util$waic() %>%
+  #   left_join(manimal) %>%
+  #   filter(substance %in% "water") %>%
+  #   left_join(dmodel %>% group_by(tag,exp) %>% summarise()) %>%
+  #   ungroup() %>%
+  #   mutate(exp = as.factor(exp),
+  #          substance = as.factor(substance)) %>%
+  #   select(tag, name, substance, exp, value = "waic") %>%
+  #   group_by(name, substance) %>%
+  #   summarise(median = round(median(value*100), 5), 
+  #             rst = round(quantile(value*100),5)[2],
+  #             rth = round(quantile(value*100),5)[4])
 
-  xlsx::write.xlsx2(temp$result, 'fig/table2.xls')
-  
-# hero info ---------------------------------------------------------------
-dmodel %>%
-    filter(tag%in%hero)%>%
-    group_by(dooropened) %>%
-    summarise(n(), value = length(which(intervala > exp(-3.507) & 
-                                          intervala < exp(7))))
-
-# combo plot --------------------------------------------------------------
-
-
-  
+# export table ------------------------------------------------------------
+# #prepare table
+#   temp <- list()
+#   temp$name = c("random","noisywinstay","basic",  "dual", "fictitious", "hybrid", 
+#                 "attention","forgetful",  "q-decay",
+#                 "q-decay*", "q-decay+", "b-decay","b-decay*", "b-decay+")
+#   temp$result <- pubmodel %>%
+#     purrr::map(~ select(., tag, name, aic, contains("par.")) %>%
+#                  tidyr::gather(param, value, -tag, -name) %>%
+#                  left_join(manimal %>% select(tag, substance), by = "tag") %>%
+#                  group_by(name, param, substance) %>%
+#                  summarise(med = median(value, na.rm = T),
+#                            low = quantile(value, na.rm = T)[2],
+#                            upp = quantile(value, na.rm = T)[4]) %>%
+#                  ungroup()) %>%
+#     bind_rows() %>%
+#     group_by(name, param, substance) %>%
+#     summarise(result = paste0(util$format_digit(med, 3), 
+#                            " (", util$format_digit(low, 3), ", ", 
+#                            util$format_digit(upp, 3), ")", collapse = "")) %>%
+#     ungroup() %>%
+#     spread(substance, result) %>%
+#     mutate(name = factor(name, levels = temp$name, ordered = T)) %>%
+#     arrange(name)
+# 
+#   xlsx::write.xlsx2(temp$result, 'fig/table2.xls')
