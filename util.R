@@ -13,25 +13,23 @@ util$binal <- function(input, how.long = "2 days", hour = 1, allow.group = T) {
             by = how.long)),labels = FALSE)} 
   input}
 
-util$plotpar <- function(modelname, arg = 'par', 
-                         gg.limits = c(0,1), gg.breaks = c(0,1), 
-                         include = TRUE,
-                         dat = pubmodel, metadata = manimal, 
-                         gg.further = theme_publication){
-  if(include){fn = function(pat, x) (grepl(pat, x))
-  } else {fn = function(pat, x) !grepl(pat, x)}
-  dat[[modelname]] %>%
-    tidyr::gather(par, value, -tag) %>%
-    filter(grepl('par', par)) %>%
-    filter(fn(arg, par)) %>%
-    left_join(metadata, by = "tag") %>%
-    ggplot(aes(x = substance, y = (function(x){
-      ifelse(x <= gg.limits[2], x, gg.limits[2])})(
-      as.numeric(value)))) +
+util$plotpar <- function(.name = "basic", .par = "par.alpha", .gg.limit = c(0,1),
+                         .gg.break = c(0,1), .gg.space = 2, a = pubmodel){
+  a[[.name]] %>%
+    select(value = .par, tag) %>%
+    left_join(manimal, by = "tag") %>%
+    mutate(par = .par,
+           originalvalue = value,
+           value = ifelse(value <= .gg.limit[2], value, .gg.limit[2])) %>%
+    ggplot(aes(x = substance, y = value)) +
     box_default() + median_default + point_default() +
+    geom_text(aes(label = ifelse(originalvalue < .gg.limit[2], 
+                                 NA, round(originalvalue, 2))), 
+              hjust = 0, nudge_x = 0, size = 2)+
+    scale_y_continuous(limits = .gg.limit, expand = c(0.1,0),
+                       breaks = .gg.break) +
     facet_wrap(~par, scales = "free_y") + 
-    scale_y_continuous(limits = gg.limits, expand = c(0.03,0), 
-                       breaks = gg.breaks) + gg.further +
+    theme_publication +
     theme(axis.title.x = element_blank(),
           axis.title.y = element_blank(),
           axis.line.x = element_blank(),
@@ -78,11 +76,12 @@ util$get <- function(.name = "basic", .column = "par.beta",
 util$format <- function(x){ifelse(x%%1 > 0, 
     as.character(x), as.character(as.integer(x)))}
 
-util$winstay <- function(sb){
-  dmodel %>% left_join(manimal, by = "tag") %>%
-    filter(substance %in% sb) %>% 
-    filter(intervala <= 2 | intervala >= 10) %>%
-    mutate(short = ifelse(intervala <= 2, "<2", ">10")) %>%
+util$winstay <- function(sb, .short = 2, .long = 10){
+  dmodel %>%
+    filter(intervala <= .short | intervala >= .long) %>%
+    mutate(short = ifelse(intervala <= .short, 
+                          paste0("<",.short, collapse = ""), 
+                          paste0(">",.long, collapse = ""))) %>%
     group_by(tag, short) %>%
     summarise(`win-stay` = length(which(dooropened == 1 & stay == 1))/ 
                 length(which(dooropened == 1)),
@@ -91,11 +90,12 @@ util$winstay <- function(sb){
     tidyr::gather(param, value, -tag, -short) %>%
     mutate(param = factor(param, levels = c("win-stay", "lose-shift"), 
                           ordered = T)) %>%
-    left_join(manimal)}
+    left_join(manimal) %>% 
+    filter(substance %in% sb)}
 
-util$wrap_winstay <- function(substance, what){
-  util_winstay(substance) %>%
-    filter(param == what) %>%
+util$wrap_winstay <- function(.substance, what){
+  util$winstay(sb = .substance) %>%
+    filter(param %in% what) %>%
     tidyr::spread(short, value)}
 
 util$aictidy <- function(a = rmodel){
@@ -136,3 +136,22 @@ util$assign_cohort <- function(a){
     mutate(cohort = gg$cohort$label[match(exp, gg$cohort$exp)],
            gr = paste(substance, cohort, sep = " ")) %>%
     mutate(substance = as.factor(gr))}
+
+util$surface <- function(tag.vec = NULL, a = subset(dmodel, tag %in% hero)) {
+  if(is.null(tag.vec)){tag.vec = unique(a$tag)} 
+  lapply(tag.vec, function(m){
+    dmouse = a[a$tag %in% m,]
+    do.call(rbind, lapply(init, function(x){
+      c(tag = as.numeric(m), x, nll = model(par = x, a = dmouse))}))})}
+
+sem <- function(x, na.rm = T) {
+  stopifnot(is.numeric(x))
+  if (na.rm) x = na.omit(x)
+  sd(x) / sqrt(length(x))}
+
+asinh_trans <- function() {
+  #as posted on stackoverflow
+  #   https://kutt.it/huJptV
+  trans_new("asinh",
+            transform = asinh,
+            inverse   = sinh)}
