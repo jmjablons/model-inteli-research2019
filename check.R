@@ -1,21 +1,6 @@
 # judyta
 check_figure <- list()
 stat_result <- list()
-# custom_stat -------------------------------------------------------------
-
-util_stat <- list(
-  cohorts = c("alcohol (I)","alcohol (II)","alcohol+saccharin (II)",
-                     "saccharin (I)","saccharin (III)", "water (IV)"),
-  kruskal = function(a = temp){kruskal.test(data = a, value ~ substance)},
-  dunn = function(a = temp){ FSA::dunnTest(data = a, value ~ substance, method="bh")$res %>%
-      filter(P.adj < 0.05) %>% select(Comparison, P.adj)},
-  wilcox_greater = function(a = temp, .mu = .5, .cohort = util_stat$cohorts){
-    .temp = data.frame(cohort = rep(NA,6), pvalue = rep(NA,6))
-    for(i in seq_along(.cohort)){
-      .temp$pvalue[i] = with(a, {wilcox.test(value[substance == .cohort[i]], 
-                                             mu = .5, alternative = 'greater')$p.value})
-      .temp$cohort[i] = .cohort[i]}
-    return(.temp %>% filter(pvalue < .05))})
 
 # check split calculation -------------------------------------------------
 modelcheck <- list()
@@ -196,7 +181,22 @@ anti_join(modelcheck[["q-decay+test"]] %>% select(-name),
           modelcheck[["q-decay+test2"]]  %>% select(-name))
 
 
+# COHORTS DIFFERENCES -----------------------------------------------------
 # check cohort effect -----------------------------------------------------
+util_stat <- list(
+  cohorts = c("alcohol (I)","alcohol (II)","alcohol+saccharin (II)",
+              "saccharin (I)","saccharin (III)", "water (IV)"),
+  kruskal = function(a = temp){kruskal.test(data = a, value ~ substance)},
+  dunn = function(a = temp){ FSA::dunnTest(data = a, value ~ substance, method="bh")$res %>%
+      filter(P.adj < 0.05) %>% select(Comparison, P.adj)},
+  wilcox_greater = function(a = temp, .mu = .5, .cohort = util_stat$cohorts){
+    .temp = data.frame(cohort = rep(NA,6), pvalue = rep(NA,6))
+    for(i in seq_along(.cohort)){
+      .temp$pvalue[i] = with(a, {wilcox.test(value[substance == .cohort[i]], 
+                                             mu = .5, alternative = 'greater')$p.value})
+      .temp$cohort[i] = .cohort[i]}
+    return(.temp %>% filter(pvalue < .05))})
+
 # reward preference -------------------------------------------------------
 temp <- util$getpreference() %>%
                left_join(manimal) %>%
@@ -267,7 +267,8 @@ stat_result[["betterratio"]] <- list(util_stat$kruskal(),
 # win-stay ----------------------------------------------------------------
 temp <- util$winstay(substances)
 
-check_figure[[4]] <- ggplot(temp, aes(x = interaction(short, param, sep = " ", lex.order = F), 
+check_figure[[4]] <- ggplot(temp, aes(x = interaction(
+  short, param, sep = " ", lex.order = F), 
              y = value, group = tag))+ 
   geom_line(aes(group = interaction(tag, param)), 
             size = .1, alpha = .7, 
@@ -296,7 +297,8 @@ temp <- dmodel %>%
   tidyr::spread(short, value) %>%
   left_join(manimal)
 
-temp_grid <- expand.grid(substance = util_stat$cohorts, param = unique(temp$param)) %>% 
+temp_grid <- expand.grid(substance = util_stat$cohorts, 
+                         param = unique(temp$param)) %>% 
   as_tibble() %>%
   mutate(param = as.character(param), substance = as.character(substance))
   
@@ -555,5 +557,3 @@ class(dall2$illumination)
 dplyr::setdiff(dall2, dall)
 identical(dall2,dall)
 all.equal(dall2,dall)
-
-
