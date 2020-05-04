@@ -110,6 +110,16 @@ for(i in LETTERS[1:4]){
 xlsx::write.xlsx(util_cornerrp, file = 'data/scheme.xls', append = T, 
                  sheetName = "decode")
 
+temp$util("A") %>% t() %>% as_tibble() %>%
+mutate(id = as.factor(id)) %>%
+ggplot(aes(x = contingency, y = 0)) +
+  geom_point(aes(shape = id), size = gg$point.size)+
+  geom_text(aes(label = duration), size = 4, nudge_x = 0, nudge_y = -.01) +
+  scale_shape_manual(values=c(1:11)) +
+  scale_y_continuous(limits = c(-0.03,0.01), expand = c(0,0))+
+  theme_void()+
+  theme(legend.position = "bottom")
+
 # fig 2 -------------------------------------------------------------------
 temp <- list()
 temp$data <- dall %>% 
