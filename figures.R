@@ -80,9 +80,35 @@ temp_names <- tibble(
            "b-decay","b-decay*","b-decay+"),
   rename = c("random","noisywinstay","dual",
              "fictitious","hybrid","forgetful",
-             "dQ","dQ+fictitious","dQ+split",
-             "dB","dB+fictitious","dB+split"),
+             "Qd","Qd+fictitious","Qd+split",
+             "Bd","Bd+fictitious","Bd+split"),
   set = c(rep(1,6),rep(2,6)))
+
+# fig 1 dataset -----------------------------------------------------------
+util_cornerrp <- tibble::enframe(c("0_0_0_0", "1_0_1_0", "0_1_0_1", 
+                "0_0_1_1", "1_0_0_1", "0_1_1_0", "0.9_0_0.9_0", 
+                "0.3_0_0.9_0", "0.9_0_0.3_0", "0.3_0_0.3_0", "0.9_0.9_0_0",
+                "0_0.9_0_0.9", "0_0_0.9_0.9", "0.9_0_0_0.9", "0_0.9_0.9_0", 
+                "0_0.3_0_0.9", "0_0.9_0_0.3", "0_0.3_0_0.3", 
+                "1_1_0_0")) %>%
+  select(-name) %>%
+  arrange(value) %>%
+  mutate(id = row_number())
+
+temp <- list(
+  util = function(.exp){
+    icager::printscheme(dall %>% filter(exp %in% .exp)) %>%
+      tidyr::unite("value", c(`1`,`2`,`3`,`4`)) %>%
+      select(-start, -end, -label) %>%
+      left_join(util_cornerrp) %>% 
+      select(-value) %>%
+      mutate(duration = as.numeric(duration)) %>% t()})
+
+for(i in LETTERS[1:4]){
+  xlsx::write.xlsx(temp$util(i),file = 'data/scheme.xls', append = T, 
+                   col.names = F, sheetName = paste0("exp",i))}
+xlsx::write.xlsx(util_cornerrp, file = 'data/scheme.xls', append = T, 
+                 sheetName = "decode")
 
 # fig 2 -------------------------------------------------------------------
 temp <- list()
