@@ -220,13 +220,15 @@ result$glm %>%
 
 result$glm %>%
   select(tag, predictor, sig) %>%
-  tidyr::spread(predictor, sig) %>%
+  tidyr::spread(predictor, sig) %>% 
   left_join(manimal %>% select(tag, substance)) %>% 
-  mutate(intercept = ifelse(dooropened1 > 0 & intervala >0, 1, 0)) %>%
+  mutate(measure = ifelse(dooropened1 > 0 & intervala >0, 1, 0)) %>%
   group_by(substance)%>%
-  summarise(intercept = sum(intercept, na.rm = T),
+  summarise(cross_rew_interval = sum(measure, na.rm = T),
+            intercept = sum(`(Intercept)`),
             reward = sum(dooropened1),
             interval = sum(intervala),
+            corner = sum(corner2),
             total = n())
 
 # visits while dark -------------------------------------------------------
@@ -347,3 +349,11 @@ dall %>%
 #     arrange(name)
 # 
 #   xlsx::write.xlsx2(temp$result, 'fig/table2.xls')
+  '%!in%' <- function(x, table) match(x, table, nomatch = 0L) == 0L
+  
+  pubmodel %>%
+    purrr::map(~tidyr::gather(., param, measure, -tag, -name)) %>%
+    dplyr::bind_rows() %>%
+    filter(param %!in% c("counts.function", "counts.gradient", "convergence"))%>%
+    xlsx::write.xlsx2('data/model_result.xls')
+  
