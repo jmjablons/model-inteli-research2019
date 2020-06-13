@@ -76,9 +76,8 @@ util$get <- function(.name = "basic", .column = "par.beta",
 util$format <- function(x){ifelse(x%%1 > 0, 
     as.character(x), as.character(as.integer(x)))}
 
-util$winstay <- function(sb, .short = 2, .long = 10){
-  dmodel %>%
-    filter(intervala <= .short | intervala >= .long) %>%
+util$winstay <- function(sb, .short = 2, .long = 10, a = dmodel){
+  a %>% filter(intervala <= .short | intervala >= .long) %>%
     mutate(short = ifelse(intervala <= .short, 
                           paste0("<",.short, collapse = ""), 
                           paste0(">",.long, collapse = ""))) %>%
@@ -144,6 +143,16 @@ util$surface <- function(tag.vec = NULL, a = subset(dmodel, tag %in% hero)) {
     do.call(rbind, lapply(init, function(x){
       c(tag = as.numeric(m), x, nll = model(par = x, a = dmouse))}))})}
 
+util$betterratio <- function(a = dall){
+  a %>% filter(info %in% "reversal") %>%
+    filter(label %in% c("0x0.3x0.9")) %>%
+    group_by(tag, exp) %>%
+    summarise(n = n(),
+              nbetter = length(which(rp > 0.5)),
+              nworse = length(which(rp > 0.0 & rp < 0.5)),
+              value = nbetter / (nbetter + nworse)) %>%
+    ungroup()}
+
 sem <- function(x, na.rm = T) {
   stopifnot(is.numeric(x))
   if (na.rm) x = na.omit(x)
@@ -155,3 +164,5 @@ asinh_trans <- function() {
   trans_new("asinh",
             transform = asinh,
             inverse   = sinh)}
+
+'%!in%' <- function(x, table) match(x, table, nomatch = 0L) == 0L

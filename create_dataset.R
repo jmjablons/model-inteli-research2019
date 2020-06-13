@@ -11,6 +11,8 @@ dall <-
   mutate(visitduration = difftime(end, start, units = "sec"),
          dooropened = as.integer(dooropened),
          corner = as.integer(corner)) 
+dall_withduplicates #<- dall
+dall = dall %>% select(-temperature) %>% distinct()
 
 dmodel <-
   dall %>%
@@ -23,6 +25,8 @@ dmodel <-
     intervala = -as.numeric(end - lead(start), units = 'mins')) %>%
   ungroup() %>%
   arrange(tag, start)
+
+dmodel_withduplicates #<-dmodel
 
 # metadata ----------------------------------------------------------------
 manimal <- readxl::read_xlsx("animals.xlsx", col_names = T)

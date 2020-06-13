@@ -2,185 +2,6 @@
 check_figure <- list()
 stat_result <- list()
 
-# check split calculation -------------------------------------------------
-modelcheck <- list()
-
-model <- function(par, a) {
-  a = a[with(a, order(start)), ]
-  nll = 0
-  if (par[1] < 0 | par[1] > 1 |
-      par[2] < 0 | par[2] > 50 | 
-      par[3] < 0 | par[3] > 1 |
-      par[4] < 0 | par[4] > 1) {
-    nll = Inf
-  } else {
-    Q = c(0, 0)
-    t = c(0, 0)
-    P <- vector()
-    rewards = a$dooropened
-    sides = ceiling(a$corner/2)
-    nows.start = a$start
-    nows.end = a$end
-    intervals = a$intervalb
-    intervals[1] = 0
-    rew = c(0,0)
-    for (i in seq_along(sides)) {
-      r = rewards[i]
-      s = sides[i]
-      now.start = nows.start[i]
-      now.end = nows.end[i]
-      t = intervals[i]
-      t = ifelse(t > 660, 660, t)
-      decay = ifelse(rew == 1, par[3], par[4])
-      rew[s] = r
-      Q = exp( -(t) * decay ) * Q
-      P = exp(par[2] * Q) / sum(exp(par[2] * Q))
-      if(P[s] < .001){P[s] = .001}
-      if(P[s] > .999){P[s] = .999}
-      nll = -log(P[s]) + nll
-      pe = r - Q[s]
-      Q[s] = Q[s] + (par[1] * pe)}}
-  nll}
-
-modelcheck[["q-decay+"]] <- util_wrap("q-decay+",
-                                    alpha = init$default,
-                                    beta = init$beta,
-                                    storage.pos = init$primitive,
-                                    storage.neg = init$primitive)
-
-model <- function(par, a) {
-  a = a[with(a, order(start)), ]
-  nll = 0
-  if (par[1] < 0 | par[1] > 1 |
-      par[2] < 0 | par[2] > 50 | 
-      par[3] < 0 | par[3] > 1) {
-    nll = Inf
-  } else {
-    par[4] = par[3]
-    Q = c(0, 0)
-    t = c(0, 0)
-    P <- vector()
-    rewards = a$dooropened
-    sides = ceiling(a$corner/2)
-    nows.start = a$start
-    nows.end = a$end
-    intervals = a$intervalb
-    intervals[1] = 0
-    rew = c(0,0)
-    for (i in seq_along(sides)) {
-      r = rewards[i]
-      s = sides[i]
-      now.start = nows.start[i]
-      now.end = nows.end[i]
-      t = intervals[i]
-      t = ifelse(t > 660, 660, t)
-      decay = ifelse(rew == 1, par[3], par[4])
-      rew[s] = r
-      Q = exp( -(t) * decay ) * Q
-      P = exp(par[2] * Q) / sum(exp(par[2] * Q))
-      if(P[s] < .001){P[s] = .001}
-      if(P[s] > .999){P[s] = .999}
-      nll = -log(P[s]) + nll
-      pe = r - Q[s]
-      Q[s] = Q[s] + (par[1] * pe)}}
-  nll}
-
-modelcheck[["q-decay+test"]] <- util_wrap("q-decay+",
-                                      alpha = init$default,
-                                      beta = init$beta,
-                                      storage = init$primitive)
-
-model <- function(par, a) {
-  a = a[with(a, order(start)), ]
-  nll = 0
-  if (par[1] < 0 | par[1] > 1 |
-      par[2] < 0 | par[2] > 50 | 
-      par[3] < 0 | par[3] > 1) {
-    nll = Inf
-  } else {
-    Q = c(0, 0)
-    t = c(0, 0)
-    P <- vector()
-    rewards = a$dooropened
-    sides = ceiling(a$corner/2)
-    nows.start = a$start
-    nows.end = a$end
-    intervals = a$intervalb
-    intervals[1] = 0
-    for (i in seq_along(sides)) {
-      r = rewards[i]
-      s = sides[i]
-      now.start = nows.start[i]
-      now.end = nows.end[i]
-      t = intervals[i]
-      t = ifelse(t > 660, 660, t)
-      Q = exp( -(t) * par[3] ) * Q
-      P = exp(par[2] * Q) / sum(exp(par[2] * Q))
-      if(P[s] < .001){P[s] = .001}
-      if(P[s] > .999){P[s] = .999}
-      nll = -log(P[s]) + nll
-      pe = r - Q[s]
-      Q[s] = Q[s] + (par[1] * pe)}}
-  nll}
-
-modelcheck[["q-decay"]] <- util_wrap("q-decay",
-                                   alpha = init$default,
-                                   beta = init$beta,
-                                   storage = init$primitive)
-
-model <- function(par, a) {
-  a = a[with(a, order(start)), ]
-  nll = 0
-  if (par[1] < 0 | par[1] > 1 |
-      par[2] < 0 | par[2] > 50 | 
-      par[3] < 0 | par[3] > 1) {
-    nll = Inf
-  } else {
-    Q = c(0, 0)
-    t = c(0, 0)
-    P <- vector()
-    rewards = a$dooropened
-    sides = ceiling(a$corner/2)
-    nows.start = a$start
-    nows.end = a$end
-    intervals = a$intervalb
-    intervals[1] = 0
-    rew = c(0,0)
-    for (i in seq_along(sides)) {
-      r = rewards[i]
-      s = sides[i]
-      now.start = nows.start[i]
-      now.end = nows.end[i]
-      t = intervals[i]
-      t = ifelse(t > 660, 660, t)
-      decay = ifelse(rew == 1, par[3], par[3])
-      rew[s] = r
-      Q = exp( -(t) * decay ) * Q
-      P = exp(par[2] * Q) / sum(exp(par[2] * Q))
-      if(P[s] < .001){P[s] = .001}
-      if(P[s] > .999){P[s] = .999}
-      nll = -log(P[s]) + nll
-      pe = r - Q[s]
-      Q[s] = Q[s] + (par[1] * pe)}}
-  nll}
-
-modelcheck[["q-decay+test2"]] <- util_wrap("q-decay+",
-                                          alpha = init$default,
-                                          beta = init$beta,
-                                          storage = init$primitive)
-
-# final -------------------------------------------------------------------
-all.equal(
-  modelcheck[["q-decay+test2"]] %>% select(-name), 
-  modelcheck[["q-decay"]]  %>% select(-name))
-
-identical(modelcheck[["q-decay"]] %>% select(-name), 
-          modelcheck[["q-decay+test"]]  %>% select(-name))
-
-anti_join(modelcheck[["q-decay+test"]] %>% select(-name), 
-          modelcheck[["q-decay+test2"]]  %>% select(-name))
-
-
 # COHORTS DIFFERENCES -----------------------------------------------------
 # check cohort effect -----------------------------------------------------
 util_stat <- list(
@@ -557,3 +378,140 @@ class(dall2$illumination)
 dplyr::setdiff(dall2, dall)
 identical(dall2,dall)
 all.equal(dall2,dall)
+
+# duplicated rows ---------------------------------------------------------
+dall %>% arrange(start) %>% 
+  filter(duplicated(start) | duplicated(start, fromLast = TRUE)) %>% View()
+
+dmodel %>%
+  select(-intervala, -intervalb) %>%
+  group_by(tag) %>%
+  distinct()
+
+temp <- dall %>%
+  distinct() %>%
+  group_by(exp, info) %>%
+  summarise(distn = n()) %>%
+  left_join(dall %>%
+              group_by(exp, info) %>%
+              summarise(origin = n())) %>%
+  mutate(duplicate = origin - distn)
+
+temp$duplicate %>% sum()
+
+dall %>% filter(duplicated(start) | duplicated(start, fromLast = TRUE))
+
+library(dplyr)
+icager::specify(dmodel)
+
+#util <- list()
+util$dtag <- function(.tag, a = dmodel){
+  filter(a, tag %in% .tag)}
+
+util$test <- function(.par){
+  for(m in unique(dmodel$tag)){
+    print(m)
+    print(paste(m, model(.par, a = util$dtag(m)), sep = " | "))}}
+
+util$test(c(0.1,5,1))
+
+util$dtag("900110000340502") %>% filter(intervalb < 1/600) %>% 
+  filter(!duplicated(start))
+
+model(c(1,2,1), util$dtag("900110000340502") %>% filter(!duplicated(start)))
+
+util$dtag("900110000340502") %>%
+  group_by(dooropened, corner) %>%
+  summarise(n = n())
+
+dmodel %>%
+  group_by(tag) %>%
+  filter(duplicated(start) | duplicated(start, fromLast = TRUE)) %>% View()
+
+dmodel %>%
+  group_by(tag) %>%
+  filter(duplicated(start) | duplicated(start, fromLast = TRUE)) %>% 
+  summarise(number = n())
+
+dmodel %>%
+  group_by(tag) %>%
+  filter(!duplicated(start) & !duplicated(start, fromLast = TRUE)) %>% 
+  summarise(number = n())
+
+temp %>%
+  group_by(tag) %>%
+  filter(!duplicated(start, fromLast = TRUE)) %>% 
+  summarise(number = n())
+
+temp %>% group_by(tag, start) %>% filter(n() > 1)
+
+temp %>% distinct()
+
+dmodel %>%
+  select(-intervala, -intervalb) %>%
+  group_by(tag) %>%
+  distinct()
+
+temp <- tibble(
+  corner = runif(20L, 1L, 3.5) %>% round(digits = 0),
+  start = sample(c(Sys.time(), Sys.time() + lubridate::minutes(240)), 20, replace = T),
+  end = start + lubridate::minutes(2),
+  dooropened = sample(c(0,1), size = 20, replace = T),
+  tag = runif(20L, 10L, 13L) %>% round(digits = 0),
+  group = 1) %>%
+  arrange(tag, start) %>%
+  mutate(id = 1:20)
+
+# check how it works
+temp %>% unique()
+temp %>% distinct(tag, corner, start, .keep_all = T)
+temp %>% distinct(.keep_all = T)
+temp %>% duplicated()
+
+temp <- dall %>%
+  group_by(start,tag)%>%
+  arrange(tag, start) %>%
+  mutate(count = 1:n()) %>%
+  filter((count > 1 & lag(count) > 0) | lead(count) > 1)
+
+temp2 <- dall %>%
+  distinct() %>%
+  group_by(start,tag)%>%
+  arrange(tag, start) %>%
+  mutate(count = 1:n()) %>%
+  filter((count > 1 & lag(count) > 0) | lead(count) > 1)
+
+temp3 <- dall %>%
+  select(-temperature) %>%
+  distinct() %>%
+  group_by(start,tag)%>%
+  arrange(tag, start) %>%
+  mutate(count = 1:n()) %>%
+  filter((count > 1 & lag(count) > 0) | lead(count) > 1)
+
+temp %>%
+  #filter(count == 1)%>%
+  group_by(start) %>%
+  summarise(N = n(),
+            tag = length(unique(tag)),
+            corner = length(unique(corner)),
+            door = length(unique(dooropened)),
+            end = length(unique(end)),
+            deviceid = length(unique(deviceid)),
+            start1 = length(unique(start)),
+            condition = length(unique(condition)),
+            temperature = length(unique(temperature)),
+            nlick = length(unique(nlick)),
+            durationlick = length(unique(durationlick)),
+            nnosepoke = length(unique(nnosepoke)),
+            rp = length(unique(rp)),
+            contingency = length(unique(contingency)),
+            info = length(unique(info)),
+            label = length(unique(label)),
+            exp = length(unique(exp)),
+            soft = length(unique(soft)),
+            visitduration = length(unique(visitduration)),
+            illumination = length(unique(illumination)),
+            count = length(unique(count))) %>% summary()
+
+identical(dall %>% unique(), dall %>% distinct())
