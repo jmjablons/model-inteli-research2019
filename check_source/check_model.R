@@ -1,3 +1,25 @@
+# general -----------------------------------------------------------------
+getoptimal2 <- function(input.data, list.parameters) {
+  optim.results <- list()
+  sample.size = nrow(list.parameters)
+  npar = ncol(list.parameters)
+  val = Inf
+  mouse = as.numeric(unique(input.data$tag))
+  for (i in 1:sample.size) {
+    temp = optim(par = unlist(`[`(list.parameters, i, 1:npar)),
+                 fn = model, a = input.data)
+    if(temp$value < val){
+      val = temp$value
+      best.optim <- temp}}
+  c(tag = mouse, unlist(best.optim))}
+
+#temp <- microbenchmark::microbenchmark(getoptimal1, getoptimal2)
+#microbenchmark::autoplot.microbenchmark(temp)
+
+# all.equal(remodel[["basic"]] %>% select(-name), 
+#           remodel[["basic2"]] %>% select(-name))
+
+# many start points -------------------------------------------------------
 repmodel <- readRDS(file.choose()) %>%
   append(readRDS(file.choose()))
 

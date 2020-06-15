@@ -12,26 +12,26 @@ dhero <- dmodel[dmodel$tag == hero,] %>%
 
 # custom ------------------------------------------------------------------
 theme_publication <- theme(
-    legend.title = element_blank(),
-    legend.background = element_blank(),
-    legend.direction = "horizontal",
-    legend.box = "vertical",
-    legend.position = c(0.0, 0.80),
-    legend.justification = c(0, 0),
-    legend.key = element_blank(),
-    axis.ticks = element_line(linetype = 'dashed'),
-    axis.line = element_line(
-      colour = "black",
-      linetype = "solid"),
-    axis.title.x = element_text(hjust = 1),
-    panel.border = element_blank(),
-    panel.grid = element_blank(),
-    panel.spacing = unit(1, "lines"),
-    panel.background = element_rect(fill = "white", colour = NA),
-    strip.background = element_blank(),
-    strip.placement = "inside",
-    strip.text = element_text(angle = 0, hjust = 0),
-    complete = FALSE)
+  legend.title = element_blank(),
+  legend.background = element_blank(),
+  legend.direction = "horizontal",
+  legend.box = "vertical",
+  legend.position = c(0.0, 0.80),
+  legend.justification = c(0, 0),
+  legend.key = element_blank(),
+  axis.ticks = element_line(linetype = 'dashed'),
+  axis.line = element_line(
+    colour = "black",
+    linetype = "solid"),
+  axis.title.x = element_text(hjust = 1),
+  panel.border = element_blank(),
+  panel.grid = element_blank(),
+  panel.spacing = unit(1, "lines"),
+  panel.background = element_rect(fill = "white", colour = NA),
+  strip.background = element_blank(),
+  strip.placement = "inside",
+  strip.text = element_text(angle = 0, hjust = 0),
+  complete = FALSE)
 
 box_default <- function(...){
   stat_summary(geom = "crossbar", fill = gg$box.fill, 

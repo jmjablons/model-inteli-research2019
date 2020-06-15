@@ -2,6 +2,18 @@
 check_figure <- list()
 stat_result <- list()
 
+# not expected event ------------------------------------------------------
+#
+# mouse presence noted for 18 hours
+dall[dall$visitduration == max(dall$visitduration),] %>% View()
+#
+# presence longer than 1h: 15
+#   one per animal + 3 per one animal
+dall %>%
+  filter(visitduration > 3600) %>% 
+  mutate(vis = as.numeric(visitduration)/3600) %>%
+  select(vis, tag, contingency, start, end, exp)
+
 # COHORTS DIFFERENCES -----------------------------------------------------
 # check cohort effect -----------------------------------------------------
 util_stat <- list(

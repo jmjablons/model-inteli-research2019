@@ -52,5 +52,8 @@ p3 <- util$betterratio() %>%
         axis.ticks.x = element_blank(),
         axis.line.x = element_blank())
 
-fig[[3]] <- (p1 | p2 | p3) + plot_layout(ncol = 3, widths = c(1, 1, 1)) + 
+tplot <- (p1 | p2 | p3) + plot_layout(ncol = 3, widths = c(1, 1, 1)) + 
   plot_annotation(tag_levels = "A")
+
+ggsave("fig/czerwiec2020/fig3.pdf", tplot, device = cairo_pdf,  
+       scale = 2, width = 80, height = 40, units = "mm")

@@ -41,4 +41,8 @@ p4 <- temp$data(hero0, 0) %>% ggplot(aes(x = log(intervala), y = stay)) +
                     axis.text.y = element_blank(),
                     axis.ticks.y = element_blank())
 
-fig[[4]] <- ((p1 | p2) / (p3 | p4)) + plot_annotation(tag_levels = "A")
+tplot <- ((p1 | p2 | plot_spacer()) / (p3 | p4 | plot_spacer())) #+ plot_annotation(tag_levels = "A")
+tplot <- ((p1 | p2) / (p3 | p4)) #+ plot_annotation(tag_levels = "A")
+
+ggsave("fig/czerwiec2020/fig4.pdf", tplot, device = cairo_pdf,  
+       scale = 1.1, width = 80, height = 80, units = "mm")

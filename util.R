@@ -134,7 +134,7 @@ util$assign_cohort <- function(a){
   a %>% left_join(manimal) %>%
     mutate(cohort = gg$cohort$label[match(exp, gg$cohort$exp)],
            gr = paste(substance, cohort, sep = " ")) %>%
-    mutate(substance = as.factor(gr))}
+    mutate(substance = gr)}
 
 util$surface <- function(tag.vec = NULL, a = subset(dmodel, tag %in% hero)) {
   if(is.null(tag.vec)){tag.vec = unique(a$tag)} 

@@ -1,3 +1,14 @@
+# other -------------------------------------------------------------------
+dall_withduplicates%>%
+  group_by(start, deviceid, corner) %>%
+  summarise(number = n()) %>%
+  filter(number > 1)
+
+dmodel %>%
+  group_by(start, deviceid, corner) %>%
+  summarise(number = n()) %>%
+  filter(number > 1)
+
 # figure 2 ----------------------------------------------------------------
 # Activity of animals
 temp <- list()

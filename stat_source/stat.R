@@ -65,7 +65,7 @@ for(i in seq_along(substances)){
 ## between two groups
 with(temp, {wilcox.test(value ~ exp, conf.int = T)})
 
-with(util$wrap_winstay("water", "lose-shift"), {
+with(util$wrap_winstay("water", "win-stay"), {
   wilcox.test(`<2`, `>10`, paired = T, conf.int = T)})
 
 ## size effect

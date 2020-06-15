@@ -58,10 +58,16 @@ p6 <- temp$data %>% filter(gr %in% "water (IV)") %>%
   ggplot(aes(x=bin, y=measure)) + temp$plot + 
   theme(legend.position = "none", axis.title.y = element_blank())
 
-fig[[2]] <- (p1 + p2) / (p3 + p4) / (p5 + p6) + 
-  plot_annotation(tag_levels = "A")
+#fig[[2]] <- (p1 + p2) / (p3 + p4) / (p5 + p6) + 
+#  plot_annotation(tag_levels = "A")
 
-fig$poprawiona2 <- (p1 + p2) / (p3 + p4) / (p5 + p6) + 
-  plot_annotation(tag_levels = "A")
+tplot <- (p1 + p2) / (p3 + p4) / (p5 + p6)
 
-fig[[2]] | fig$poprawiona2
+ggsave(filename = "fig/czerwiec2020/fig2.pdf", plot = tplot,
+       device = cairo_pdf, 
+       scale = 1.3, width = 80, height = 80, units = "mm")
+
+# library(extrafont)
+# font_import()
+# loadfonts(device = "win")
+# fonts()

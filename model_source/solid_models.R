@@ -2,17 +2,19 @@
 library(dplyr)
 
 # SETTUP ------------------------------------------------------------------
+setwd('~/phDCompute/let_model_go/')
+
 # variables ---------------------------------------------------------------
 #pubmodel <- list()
+remodel <- list()
 
-init <- list(default = seq(0.05, 1, by = 0.05),
-  beta = seq(0.25, 15, by = 0.50), 
-  primitive = seq(0, 1, by = 0.05))
+init <- list(default = c(0.05, 0.15, 0.35, 0.55, 0.75, 0.95),
+             beta = seq(0.25, 5, by = 1))
 
 # custom ------------------------------------------------------------------
 getaic <- function(n.parameters, nll) {2 * nll + 2 * n.parameters}
 
-listnth <- function(inp, n){sapply(inp, `[`, n)}
+#listnth <- function(inp, n){sapply(inp, `[`, n)}
 
 getoptimal_ <- function(dataset, list.parameters){ #one parameter
   out = c(tag = as.numeric(unique(dataset$tag)), 
@@ -27,15 +29,12 @@ getoptimal_ <- function(dataset, list.parameters){ #one parameter
 
 getoptimal <- function(input.data, list.parameters) {
   optim.results <- list()
-  sample.size = length(list.parameters[[1]])
+  sample.size = nrow(list.parameters)
   val = Inf
   mouse = as.numeric(unique(input.data$tag))
-  for (i in seq_along(sample.size)) {
-    temp = optim(par = listnth(list.parameters, i), 
-                 fn = model, a = input.data)
-    if(temp$value < val){
-      val = temp$value
-      best.optim <- temp}}
+  temp <- apply(list.parameters, 1, function(x){
+    optim(par = x, fn = model, a = input.data)})
+  best.optim <- temp[[which.min(lapply(temp,function(x) {unlist(x$value)}))]]
   c(tag = mouse, unlist(best.optim))}
 
 wrapmodel <- function(list.parameters, a = dmodel, tags = NULL) {
@@ -51,7 +50,7 @@ wrapmodel <- function(list.parameters, a = dmodel, tags = NULL) {
 
 util_wrap <- function(name, ...){
   initial <- expand.grid(...)
-  initial = as.list(initial)
+  #initial = as.list(initial)
   wrapmodel(initial) %>% as_tibble() %>%
     mutate(name = name, tag = as.character(tag),
            aic = getaic(length(initial), value))}
@@ -80,7 +79,7 @@ model <- function(par, a) {
       Q[s] = Q[s] + (par[1] * pe)}}#}
   nll}
 
-pubmodel[["basic"]] <- util_wrap("basic", alpha = init$default, 
+remodel[["basic"]] <- util_wrap("basic", alpha = init$default, 
                                beta = init$beta)
 
 # dual --------------------------------------------------------------------
@@ -108,7 +107,7 @@ model <- function(par, a) {
       } else {Q[s] = Q[s] + (par[3] * pe)}}}
   nll}
 
-pubmodel[["dual"]] <- util_wrap("dual", alpha.pos = init$default, 
+remodel[["dual"]] <- util_wrap("dual", alpha.pos = init$default, 
                               beta = init$beta, alpha.neg = init$default)
 
 # attention ---------------------------------------------------------------
@@ -137,7 +136,7 @@ model <- function(par, a) {
       Q[s] = Q[s] + (alpha * pe)}}
   nll}
 
-pubmodel[["attention"]] <- 
+remodel[["attention"]] <- 
   util_wrap("attention", alpha.zero = init$default, 
             beta = init$beta, ni= init$default)
 
@@ -165,7 +164,7 @@ model <- function(par, a) {
       Q[-s] = Q[-s] - (par[1] * pe)}}
   nll}
 
-pubmodel[["fictitious"]] <- util_wrap("fictitious", 
+remodel[["fictitious"]] <- util_wrap("fictitious", 
                                     alpha = init$default,
                                     beta = init$beta)
 
@@ -198,7 +197,7 @@ model <- function(par, a) {
         Q[-s] = Q[-s] - (par[3] * pe)}}}
   nll}
 
-pubmodel[["hybrid"]] <- util_wrap("hybrid",alpha.pos = init$default,
+remodel[["hybrid"]] <- util_wrap("hybrid",alpha.pos = init$default,
                                 beta =  init$beta,
                                 alpha.neg = init$default)
 
@@ -229,7 +228,7 @@ model <- function(par, a) {
       Q[-s] = Q[-s] + par[3] * delta}}
   nll}
 
-pubmodel[["forgetful"]] <- util_wrap("forgetful",
+remodel[["forgetful"]] <- util_wrap("forgetful",
                                    alpha = init$default,
                                    beta = init$beta,
                                    epsilon = init$default)
@@ -269,54 +268,54 @@ model <- function(par, a) {
       Q[s] = Q[s] + (par[1] * pe)}}
   nll}
 
-pubmodel[["q-decay"]] <- util_wrap("q-decay",
+remodel[["q-decay"]] <- util_wrap("q-decay",
                                alpha = init$default,
                                beta = init$beta,
-                               storage = init$primitive)
+                               storage = init$default)
 
 # q-decay split -----------------------------------------------------------
-model <- function(par, a) {
-  a = a[with(a, order(start)), ]
-  nll = 0
-  if (par[1] < 0 | par[1] > 1 |
-      par[2] < 0 | par[2] > 50 | 
-      par[3] < 0 | par[3] > 1 |
-      par[4] < 0 | par[4] > 1) {
-    nll = Inf
-  } else {
-    Q = c(0, 0)
-    t = c(0, 0)
-    P <- vector()
-    rewards = a$dooropened
-    sides = ceiling(a$corner/2)
-    nows.start = a$start
-    nows.end = a$end
-    intervals = a$intervalb
-    intervals[1] = 0
-    rew = c(0,0)
-    for (i in seq_along(sides)) {
-      r = rewards[i]
-      s = sides[i]
-      now.start = nows.start[i]
-      now.end = nows.end[i]
-      t = intervals[i]
-      t = ifelse(t > 660, 660, t)
-      decay = ifelse(rew == 1, par[3], par[4])
-      rew[s] = r
-      Q = exp( -(t) * decay ) * Q
-      P = exp(par[2] * Q) / sum(exp(par[2] * Q))
-      if(P[s] < .001){P[s] = .001}
-      if(P[s] > .999){P[s] = .999}
-      nll = -log(P[s]) + nll
-      pe = r - Q[s]
-      Q[s] = Q[s] + (par[1] * pe)}}
-  nll}
-
-pubmodel[["q-decay+"]] <- util_wrap("q-decay+",
-                               alpha = init$default,
-                               beta = init$beta,
-                               storage.pos = init$primitive,
-                               storage.neg = init$primitive)
+# model <- function(par, a) {
+#   a = a[with(a, order(start)), ]
+#   nll = 0
+#   if (par[1] < 0 | par[1] > 1 |
+#       par[2] < 0 | par[2] > 50 | 
+#       par[3] < 0 | par[3] > 1 |
+#       par[4] < 0 | par[4] > 1) {
+#     nll = Inf
+#   } else {
+#     Q = c(0, 0)
+#     t = c(0, 0)
+#     P <- vector()
+#     rewards = a$dooropened
+#     sides = ceiling(a$corner/2)
+#     nows.start = a$start
+#     nows.end = a$end
+#     intervals = a$intervalb
+#     intervals[1] = 0
+#     rew = c(0,0)
+#     for (i in seq_along(sides)) {
+#       r = rewards[i]
+#       s = sides[i]
+#       now.start = nows.start[i]
+#       now.end = nows.end[i]
+#       t = intervals[i]
+#       t = ifelse(t > 660, 660, t)
+#       decay = ifelse(rew == 1, par[3], par[4])
+#       rew[s] = r
+#       Q = exp( -(t) * decay ) * Q
+#       P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+#       if(P[s] < .001){P[s] = .001}
+#       if(P[s] > .999){P[s] = .999}
+#       nll = -log(P[s]) + nll
+#       pe = r - Q[s]
+#       Q[s] = Q[s] + (par[1] * pe)}}
+#   nll}
+# 
+# remodel[["q-decay+"]] <- util_wrap("q-decay+",
+#                                alpha = init$default,
+#                                beta = init$beta,
+#                                storage.pos = init$default,
+#                                storage.neg = init$default)
 
 # q-decay fictitious ------------------------------------------------------
 model <- function(par, a) {
@@ -353,97 +352,97 @@ model <- function(par, a) {
       Q[-s] = Q[-s] - (par[1] * pe)}}
   nll}
 
-pubmodel[["q-decay*"]] <- util_wrap("q-decay*",
+remodel[["q-decay*"]] <- util_wrap("q-decay*",
                                  alpha = init$default,
                                  beta = init$beta,
-                                 storage = init$primitive)
+                                 storage = init$default)
 
 # relational --------------------------------------------------------------
-model <- function(par, a) {
-  a = a[with(a, order(start)), ]
-  nll = 0
-  if (par[1] < 0 | par[1] > 1 |
-      par[2] < 0 | par[2] > 50 |
-      par[3] < 0 | par[3] > 1 |
-      par[4] < 0 | par[4] > 7) {
-    nll = Inf
-  } else {
-    Q = c(0, 0)
-    P <- vector()
-    b0 = 0
-    rewards = a$dooropened
-    sides = ceiling(a$corner / 2)
-    previous = lag(sides)
-    previous[1] = 1
-    intervals = a$intervalb
-    intervals[1] = 0
-    for (i in seq_along(sides)) {
-      r = rewards[i]
-      s = sides[i]
-      w = previous[i]
-      t = intervals[i]
-      P = exp(par[2] * Q) / sum(exp(par[2] * Q))
-      P = ifelse(P < .001, .001, P)
-      P = ifelse(P > .999, .999, P)
-      b0 = log(P[w] / (1 - P[w]))
-      if(t > 660) t = 660
-      P[w] = exp(b0 + par[3] * t - par[4]) / 
-        (1 + exp(b0 + par[3] * t - par[4]))
-      P[-w] = 1 - P[w]
-      if(P[s] < .001){P[s] = .001}
-      if(P[s] > .999){P[s] = .999}
-      nll = -log(P[s]) + nll
-      pe = r - Q[s] 
-      Q[s] = Q[s] + (par[1] * pe)}}
-  nll}
-
-pubmodel[["relational"]] <- 
-  util_wrap("relational", alpha = init$default, beta = init$beta,
-            iota = init$primitive, rho = init$default)
-
-# relational + fictitious -------------------------------------------------
-model <- function(par, a) {
-  a = a[with(a, order(start)), ]
-  nll = 0
-  if (par[1] < 0 | par[1] > 1 |
-      par[2] < 0 | par[2] > 50 |
-      par[3] < 0 | par[3] > 1 |
-      par[4] < 0 | par[4] > 7) {
-    nll = Inf
-  } else {
-    Q = c(0, 0)
-    P <- vector()
-    b0 = 0
-    rewards = a$dooropened
-    sides = ceiling(a$corner / 2)
-    previous = lag(sides)
-    previous[1] = 1
-    intervals = a$intervalb
-    intervals[1] = 0
-    for (i in seq_along(sides)) {
-      r = rewards[i]
-      s = sides[i]
-      w = previous[i]
-      t = intervals[i]
-      P = exp(par[2] * Q) / sum(exp(par[2] * Q))
-      P = ifelse(P < .001, .001, P)
-      P = ifelse(P > .999, .999, P)
-      b0 = log(P[w] / (1 - P[w]))
-      if(t > 660) t = 660
-      P[w] = exp(b0 + par[3] * t - par[4]) / 
-        (1 + exp(b0 + par[3] * t - par[4]))
-      P[-w] = 1 - P[w]
-      if(P[s] < .001){P[s] = .001}
-      if(P[s] > .999){P[s] = .999}
-      nll = -log(P[s]) + nll
-      pe = r - Q[s] 
-      Q[s] = Q[s] + (par[1] * pe)
-      Q[-s] = Q[-s] - (par[1] * pe)}}
-  nll}
-
-pubmodel[["relational*"]] <- 
-  util_wrap("relational*", alpha = init$default, beta = init$beta,
-            iota = init$primitive, rho = init$default)
+# model <- function(par, a) {
+#   a = a[with(a, order(start)), ]
+#   nll = 0
+#   if (par[1] < 0 | par[1] > 1 |
+#       par[2] < 0 | par[2] > 50 |
+#       par[3] < 0 | par[3] > 1 |
+#       par[4] < 0 | par[4] > 7) {
+#     nll = Inf
+#   } else {
+#     Q = c(0, 0)
+#     P <- vector()
+#     b0 = 0
+#     rewards = a$dooropened
+#     sides = ceiling(a$corner / 2)
+#     previous = lag(sides)
+#     previous[1] = 1
+#     intervals = a$intervalb
+#     intervals[1] = 0
+#     for (i in seq_along(sides)) {
+#       r = rewards[i]
+#       s = sides[i]
+#       w = previous[i]
+#       t = intervals[i]
+#       P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+#       P = ifelse(P < .001, .001, P)
+#       P = ifelse(P > .999, .999, P)
+#       b0 = log(P[w] / (1 - P[w]))
+#       if(t > 660) t = 660
+#       P[w] = exp(b0 + par[3] * t - par[4]) / 
+#         (1 + exp(b0 + par[3] * t - par[4]))
+#       P[-w] = 1 - P[w]
+#       if(P[s] < .001){P[s] = .001}
+#       if(P[s] > .999){P[s] = .999}
+#       nll = -log(P[s]) + nll
+#       pe = r - Q[s] 
+#       Q[s] = Q[s] + (par[1] * pe)}}
+#   nll}
+# 
+# remodel[["relational"]] <- 
+#   util_wrap("relational", alpha = init$default, beta = init$beta,
+#             iota = init$default, rho = init$default)
+# 
+# # relational + fictitious -------------------------------------------------
+# model <- function(par, a) {
+#   a = a[with(a, order(start)), ]
+#   nll = 0
+#   if (par[1] < 0 | par[1] > 1 |
+#       par[2] < 0 | par[2] > 50 |
+#       par[3] < 0 | par[3] > 1 |
+#       par[4] < 0 | par[4] > 7) {
+#     nll = Inf
+#   } else {
+#     Q = c(0, 0)
+#     P <- vector()
+#     b0 = 0
+#     rewards = a$dooropened
+#     sides = ceiling(a$corner / 2)
+#     previous = lag(sides)
+#     previous[1] = 1
+#     intervals = a$intervalb
+#     intervals[1] = 0
+#     for (i in seq_along(sides)) {
+#       r = rewards[i]
+#       s = sides[i]
+#       w = previous[i]
+#       t = intervals[i]
+#       P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+#       P = ifelse(P < .001, .001, P)
+#       P = ifelse(P > .999, .999, P)
+#       b0 = log(P[w] / (1 - P[w]))
+#       if(t > 660) t = 660
+#       P[w] = exp(b0 + par[3] * t - par[4]) / 
+#         (1 + exp(b0 + par[3] * t - par[4]))
+#       P[-w] = 1 - P[w]
+#       if(P[s] < .001){P[s] = .001}
+#       if(P[s] > .999){P[s] = .999}
+#       nll = -log(P[s]) + nll
+#       pe = r - Q[s] 
+#       Q[s] = Q[s] + (par[1] * pe)
+#       Q[-s] = Q[-s] - (par[1] * pe)}}
+#   nll}
+# 
+# remodel[["relational*"]] <- 
+#   util_wrap("relational*", alpha = init$default, beta = init$beta,
+#             iota = init$default, rho = init$default)
 
 # beta-decay --------------------------------------------------------------
 model <- function(par, a) {
@@ -476,51 +475,51 @@ model <- function(par, a) {
       Q[s] = Q[s] + (par[1] * pe)}}
   nll}
 
-pubmodel[["b-decay"]] <- 
+remodel[["b-decay"]] <- 
   util_wrap("b-decay", alpha = init$default,
-            beta = init$beta, bdecay = init$primitive)
+            beta = init$beta, bdecay = init$default)
 
 # beta-decay split --------------------------------------------------------
-model <- function(par, a) {
-  a = a[with(a, order(start)), ]
-  nll = 0
-  if (par[1] < 0 | par[1] > 1 |
-      par[2] < 0 | par[2] > 50 | 
-      par[3] < 0 | par[3] > 1 |
-      par[4] < 0 | par[4] > 1) {
-    nll = Inf
-  } else {
-    Q = c(0, 0)
-    date = a$start[1]
-    t = 0
-    P <- vector()
-    rewards = a$dooropened
-    sides = ceiling(a$corner/2)
-    intervals = a$intervalb
-    intervals[1] = 0
-    beta.zero = par[2]
-    rew = 0
-    for (i in seq_along(sides)) {
-      r = rewards[i]
-      s = sides[i]
-      t = intervals[i]
-      t = ifelse(t > 660, 660, t)
-      decay = ifelse(rew == 1, par[3], par[4])
-      beta = exp( -t * decay ) * beta.zero
-      P = exp(beta * Q) / sum(exp(beta * Q))
-      if(P[s] < .001){P[s] = .001}
-      if(P[s] > .999){P[s] = .999}
-      nll = -log(P[s]) + nll
-      pe = r - Q[s]
-      Q[s] = Q[s] + (par[1] * pe)
-      rew = r}}
-  nll}
-
-pubmodel[["b-decay+"]] <- 
-  util_wrap("b-decay+", alpha = init$default,
-            beta = init$beta,
-            bdecay.pos = init$primitive,
-            bdecay.neg = init$primitive)
+# model <- function(par, a) {
+#   a = a[with(a, order(start)), ]
+#   nll = 0
+#   if (par[1] < 0 | par[1] > 1 |
+#       par[2] < 0 | par[2] > 50 | 
+#       par[3] < 0 | par[3] > 1 |
+#       par[4] < 0 | par[4] > 1) {
+#     nll = Inf
+#   } else {
+#     Q = c(0, 0)
+#     date = a$start[1]
+#     t = 0
+#     P <- vector()
+#     rewards = a$dooropened
+#     sides = ceiling(a$corner/2)
+#     intervals = a$intervalb
+#     intervals[1] = 0
+#     beta.zero = par[2]
+#     rew = 0
+#     for (i in seq_along(sides)) {
+#       r = rewards[i]
+#       s = sides[i]
+#       t = intervals[i]
+#       t = ifelse(t > 660, 660, t)
+#       decay = ifelse(rew == 1, par[3], par[4])
+#       beta = exp( -t * decay ) * beta.zero
+#       P = exp(beta * Q) / sum(exp(beta * Q))
+#       if(P[s] < .001){P[s] = .001}
+#       if(P[s] > .999){P[s] = .999}
+#       nll = -log(P[s]) + nll
+#       pe = r - Q[s]
+#       Q[s] = Q[s] + (par[1] * pe)
+#       rew = r}}
+#   nll}
+# 
+# remodel[["b-decay+"]] <- 
+#   util_wrap("b-decay+", alpha = init$default,
+#             beta = init$beta,
+#             bdecay.pos = init$default,
+#             bdecay.neg = init$default)
 
 # beta-decay fictitious ---------------------------------------------------
 model <- function(par, a) {
@@ -555,10 +554,10 @@ model <- function(par, a) {
       Q[-s] = Q[-s] - (par[1] * pe)}}
   nll}
 
-pubmodel[["b-decay*"]] <- 
+remodel[["b-decay*"]] <- 
   util_wrap("b-decay*", alpha = init$default,
             beta = init$beta,
-            bdecay = init$primitive)
+            bdecay = init$default)
 
 #  CONTROL ----------------------------------------------------------------
 # noisy win-stay ----------------------------------------------------------
@@ -593,7 +592,7 @@ model <-
         nll = -log(P[k]) + nll}}
     nll}
 
-pubmodel[["noisywinstay"]] <- 
+remodel[["noisywinstay"]] <- 
   (function(initials, a = dmodel) {
     tags = as.character(levels(as.factor(a$tag)))
     output = list()
@@ -604,7 +603,12 @@ pubmodel[["noisywinstay"]] <-
   mutate(name = "noisywinstay", tag = as.character(tag), aic = getaic(1, value))
 
 # random ------------------------------------------------------------------
-pubmodel[["random"]] <- dmodel %>%
+remodel[["random"]] <- dmodel %>%
   group_by(tag) %>%
   summarise(n = length(corner)) %>%
   mutate(name = "random", aic = getaic(0, n * -log(0.5)))
+
+print("done: publikacja")
+saveRDS(remodel_publikacja, 'result/remodel_publikacja.rds')
+#rm(dmodel)
+#rm(remodel_publikacja)

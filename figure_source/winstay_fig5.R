@@ -1,4 +1,4 @@
-temp <- list(geom_line(aes(group = interaction(tag, param)), 
+temp <- list(geom_line(aes(group = interaction(tag, param)), #interaction(tag, param)
                        size = .1, alpha = .7, 
                        colour = "black"),
              point_default(point.size = 2, point.width = .1), 
@@ -11,7 +11,8 @@ temp <- list(geom_line(aes(group = interaction(tag, param)),
                    axis.text.x = element_text(angle = 45, hjust = 1),
                    axis.ticks.x = element_blank()))
 
-p1 <- util$winstay("alcohol") %>%
+p1 <- util$winstay("alcohol") %>% 
+  #util$assign_cohort() %>%
   ggplot(aes(x = interaction(short, param, sep = " ", lex.order = F), 
              y = value, group = tag)) + temp +
   util$signif(x.where = c(1,2), y.where = 1.06, y.space = 0.01, "black")+
@@ -23,7 +24,8 @@ p2 <- util$winstay("alcohol+saccharin") %>%
   util$signif(x.where = c(1,2), y.where = 1.06, y.space = 0.01, "black")+
   util$signif(x.where = c(3,4), y.where = 1.06, y.space = 0.01, "black")
 
-p3 <- util$winstay("saccharin") %>%
+p3 <- util$winstay("saccharin") %>% 
+  #util$assign_cohort() %>%
   ggplot(aes(x = interaction(short, param, sep = " ", lex.order = F), 
              y = value)) + temp +
   util$signif(x.where = c(1,2), y.where = 1.06, y.space = 0.01, "black")+
@@ -34,4 +36,7 @@ p4 <- util$winstay("water") %>%
              y = value)) + temp +
   util$signif(x.where = c(3,4), y.where = 1.06, y.space = 0.01, "black")
 
-fig[[5]] <- (p1 | p2) / (p3 | p4) + plot_annotation(tag_levels = "A")
+tplot <- (p1 | p2) / (p3 | p4) + plot_annotation(tag_levels = "A")
+
+ggsave("fig/czerwiec2020/fig5.pdf", tplot, device = cairo_pdf, 
+       scale = 1.2, width = 80, height = 100, units = "mm")

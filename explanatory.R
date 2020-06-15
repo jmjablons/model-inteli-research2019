@@ -63,3 +63,16 @@ dall %>%
   summarise(sumvisit = sum(visitduration, na.rm = T),
             measure = (sumvisit / (24 * 60 * 60)) * 100) %>% View()
   summarise(min = min(measure), max = max(measure)) %>% View()
+  
+# parameters --------------------------------------------------------------
+  util$plotpar("dual","par.alpha.pos",a = remodel) + 
+    util$plotpar("dual","par.alpha.neg",a = remodel)
+  
+  remodel$dual %>%
+    select(tag, par.alpha.pos, par.alpha.neg) %>%
+    tidyr::gather(param, value, -tag) %>%
+    left_join(manimal) %>%
+    ggplot(aes(x =param, y = value, group = tag)) +
+    geom_line()+
+    geom_point()+
+    facet_wrap(~substance)

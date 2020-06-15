@@ -71,4 +71,23 @@ p4 <- result$glm %>%
 #         axis.ticks.y = element_line(linetype = 'dashed'),
 #         axis.line.x = element_blank())
 
-fig[[6]] <- ((p1 | p2) / (p3 | p4)) + plot_annotation(tag_levels = "A")
+tplot <- ((p1 | p2) / (p3 | p4)) + plot_annotation(tag_levels = "A")
+
+ggsave("fig/czerwiec2020/fig6.pdf", tplot, device = cairo_pdf, 
+       scale = 1.4, width = 80, height = 100, units = "mm")
+
+# add number --------------------------------------------------------------
+temp <- result$glm %>%
+  select(tag, predictor, sig) %>%
+  tidyr::spread(predictor, sig) %>% 
+  left_join(manimal %>% select(tag, substance)) %>% 
+  mutate(measure = ifelse(dooropened1 > 0 & intervala >0, 1, 0)) %>%
+  group_by(substance)%>%
+  summarise(cross_rew_interval = sum(measure, na.rm = T),
+            intercept = sum(`(Intercept)`),
+            reward = sum(dooropened1),
+            interval = sum(intervala),
+            corner = sum(corner2),
+            total = n())
+
+xlsx::write.xlsx(temp, 'fig/czerwiec2020/fig6info.xls')
