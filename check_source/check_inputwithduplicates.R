@@ -180,3 +180,25 @@ temp$dif =
          nworse = abs(nworse - dnworse),
          nbetter = abs(nbetter - dnbetter))
 temp$dif %>% View()
+
+
+# check hero --------------------------------------------------------------
+temp1 <- dall_withduplicates %>% 
+  filter(info %in% "reversal", visitduration >2 ,rp > 0, tag %in% hero) %>%
+  select(-temperature)
+
+temp2 <- dall %>% 
+  filter(info %in% "reversal", visitduration >2 ,rp > 0, tag %in% hero)
+
+temp1 <- dmodel %>% filter(tag %in% hero)
+temp2 <- dmodel_withduplicates %>% filter(tag %in% hero) %>% select(-temperature)
+
+temp <- list()
+temp <- init
+temp$nll <- apply(init, 1, function(x){model(par = x, a = dhero)})
+
+temp$nll <- lapply(X = init, FUN = function(x){model(par = x, a = dhero)})
+
+all.equal(temp1, dhero)
+
+model(unlist(init[1]), dhero)

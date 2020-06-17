@@ -42,10 +42,15 @@ temp <- util$betterratio(dall) %>%
 # model parameters
 temp <- util$get("fictitious","par.beta", "saccharin")
 
-temp <- pubmodel[["fictitious"]] %>%
-  select(value = par.beta, tag) %>%
+temp <- pubmodel[["basic"]] %>%
+  select(value = par.alpha, tag) %>%
   left_join(manimal, by = "tag") %>%
-  mutate(substance = as.factor(gr))
+  mutate(substance = as.factor(substance))
+
+temp <- pubmodel[["fictitious"]] %>%
+  select(value = par.alpha, tag) %>%
+  left_join(manimal, by = "tag") %>%
+  mutate(substance = as.factor(substance))
 
 # stat --------------------------------------------------------------------
 #$p.value %>% format(scientific = F, digits = 3)

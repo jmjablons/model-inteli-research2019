@@ -13,20 +13,24 @@ util$binal <- function(input, how.long = "2 days", hour = 1, allow.group = T) {
             by = how.long)),labels = FALSE)} 
   input}
 
-util$plotpar <- function(.name = "basic", .par = "par.alpha", .gg.limit = c(0,1),
+util$plotpar <- function(.name = "basic", .par = "par.alpha", .gg.limit = c(0,.9, 1), 
+                         .gg.maxvalue = c(1),
                          .gg.break = c(0,1), .gg.space = 2, a = pubmodel){
   a[[.name]] %>%
     select(value = .par, tag) %>%
     left_join(manimal, by = "tag") %>%
     mutate(par = .par,
            originalvalue = value,
-           value = ifelse(value <= .gg.limit[2], value, .gg.limit[2])) %>%
+           value = ifelse(value <= .gg.limit[2], 
+                          value, 
+                          .gg.limit[2] + (
+                            (value/.gg.maxvalue) * (.gg.limit[3]-.gg.limit[2])))) %>%
     ggplot(aes(x = substance, y = value)) +
     box_default() + median_default + point_default() +
     geom_text(aes(label = ifelse(originalvalue < .gg.limit[2], 
                                  NA, round(originalvalue, 2))), 
-              hjust = 0, nudge_x = 0, size = 2)+
-    scale_y_continuous(limits = .gg.limit, expand = c(0.1,0),
+              hjust = 0, nudge_x = 0, size = 1)+
+    scale_y_continuous(limits = .gg.limit[c(1,3)], expand = c(0,0.05*.gg.limit[3]),
                        breaks = .gg.break) +
     facet_wrap(~par, scales = "free_y") + 
     theme_publication +

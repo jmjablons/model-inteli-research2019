@@ -47,4 +47,7 @@ p6 <- ggplot(temp$util("water (IV)"), aes(x=period, y=measure)) +
   temp$plot() + theme(axis.title.x = element_text(hjust = 1)) + 
   labs(x = "Bin (48h)")
 
-fig[["sup2"]] <- (p1 + p2) / (p3 + p4) / (p5 + p6)
+tplot <- (p1 + p2) / (p3 + p4) / (p5 + p6)
+
+ggsave("fig/czerwiec2020/sup2.pdf", tplot, device = cairo_pdf,  
+       scale = 1.3, width = 80, height = 80, units = "mm")

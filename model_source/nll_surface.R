@@ -10,8 +10,8 @@ library(dplyr)
 
 # 2 pregenerate parameter values ------------------------------------------
 
-init <- expand.grid(alpha = seq(0,1,.01), beta = seq(0,5,.1), 
-                    bdecay = seq(0,1,.01))
+init <- expand.grid(alpha = seq(0,1,.01), beta = seq(0,5,.1))
+
 init = lapply(seq_len(nrow(init)), function(i) unlist(init[i,]))
 
 # 3 run the model on initials ---------------------------------------------

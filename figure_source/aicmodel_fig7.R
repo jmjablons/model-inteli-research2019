@@ -1,5 +1,6 @@
 temp <- list(
-  data = util$aictidy(repmodel) %>% filter(name %in% temp_names$name & name %!in% c("random", "noisywinstay")),
+  data = util$aictidy(remodel) %>% filter(#name %in% temp_names$name & 
+                                            name %!in% c("random", "noisywinstay")),
   plot = list(box_default(), median_default, point_default(), 
               geom_hline(yintercept = 0, linetype = "dotted"),
               theme_publication, 
@@ -38,17 +39,6 @@ p3 <- temp$util("alcohol+saccharin",1)+
 
 p4 <- temp$util("water",1)
 
-p1a <- temp$util("alcohol",1) + 
-  theme(axis.text.x = element_blank())
-
-p2a <- temp$util("saccharin",1)+ 
-  theme(axis.text.x = element_blank())
-
-p3a <- temp$util("alcohol+saccharin",1)+ 
-  theme(axis.text.x = element_blank())
-
-p4a <- temp$util("water",1)
-
 p5 <- temp$util("alcohol",2) + 
   theme(axis.text.x = element_blank(),
         axis.line.y = element_blank(),
@@ -76,6 +66,4 @@ p8 <- temp$util("water",2)+
         axis.title.y = element_blank(),
         axis.ticks.y = element_blank())
 
-fig[[7]] <- ((p1 | p5) / (p2 | p6) / (p3 | p7) / (p4 | p8))
-
-((p1 | p1a) / (p2 | p2a) / (p3 | p3a) / (p4 | p4a))
+tplot <- ((p1 | p5) / (p2 | p6) / (p3 | p7) / (p4 | p8))
