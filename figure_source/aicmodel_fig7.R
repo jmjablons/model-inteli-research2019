@@ -1,5 +1,3 @@
-# %>% filter(#name %in% temp_names$name & 
-#name %!in% c("random", "noisywinstay"))
 temp <- list(
   data = util$aictidy(remodel),
   plot = list(box_default(), median_default, point_default(), 
