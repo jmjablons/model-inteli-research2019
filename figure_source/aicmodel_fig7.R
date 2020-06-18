@@ -1,6 +1,7 @@
+# %>% filter(#name %in% temp_names$name & 
+#name %!in% c("random", "noisywinstay"))
 temp <- list(
-  data = util$aictidy(remodel) %>% filter(#name %in% temp_names$name & 
-                                            name %!in% c("random", "noisywinstay")),
+  data = util$aictidy(remodel),
   plot = list(box_default(), median_default, point_default(), 
               geom_hline(yintercept = 0, linetype = "dotted"),
               theme_publication, 
@@ -67,3 +68,5 @@ p8 <- temp$util("water",2)+
         axis.ticks.y = element_blank())
 
 tplot <- ((p1 | p5) / (p2 | p6) / (p3 | p7) / (p4 | p8))
+ggsave("fig/czerwiec2020/fig7.pdf", tplot, device = cairo_pdf,  
+       scale = 1.3, width = 80, height = 180, units = "mm")

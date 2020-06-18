@@ -81,4 +81,4 @@ temp_names <- tibble(
              "fictitious","hybrid","forgetful",
              "Qd","Qd+fictitious","Qd+split",
              "Bd","Bd+fictitious","Bd+split"),
-  set = c(rep(1,6),rep(2,6)))
+  set = c(rep(1,5),rep(2,7)))

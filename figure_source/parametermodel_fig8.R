@@ -13,3 +13,13 @@ p4 <- util$plotpar("fictitious", "par.alpha", c(0,.6, .7), .gg.maxvalue = 1, c(0
 tplot <- (p1 + p2) / (p3 + p4) + plot_annotation(tag_levels = "A")
 ggsave("fig/czerwiec2020/fig8.pdf", tplot, device = cairo_pdf,  
        scale = 1.3, width = 80, height = 100, units = "mm")
+
+remodel[["fictitious"]] %>%
+  left_join(manimal) %>%
+  select("par.alpha", substance) %>%
+  filter(par.alpha > .6)
+
+remodel[["fictitious"]] %>%
+  left_join(manimal) %>%
+  select("par.beta", substance) %>%
+  filter(par.beta > 12)
