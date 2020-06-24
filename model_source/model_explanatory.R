@@ -1,5 +1,5 @@
 # explanatory short #
-pubmodel %>%
+remodel %>%
   purrr::map(~select(., tag, aic, name)) %>%
   dplyr::bind_rows() %>%
   filter(name %in% c(temp_names$name, "basic")) %>%
@@ -15,7 +15,7 @@ pubmodel %>%
   arrange(-n, .by_group = TRUE) %>%
   ungroup() %>% View()
 
-pubmodel %>%
+remodel %>%
   purrr::map(~select(., tag, aic, name)) %>%
   dplyr::bind_rows() %>%
   filter(name %in% c(temp_names$name, "basic")) %>%
@@ -30,7 +30,7 @@ pubmodel %>%
   arrange(-n, .by_group = TRUE) %>%
   ungroup()
 
-pubmodel %>%
+remodel %>%
   purrr::map(~select(., tag, aic, name)) %>%
   dplyr::bind_rows() %>%
   filter(name %in% c(temp_names$name, "basic")) %>%

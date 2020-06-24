@@ -26,6 +26,34 @@ dall %>%
             min = min(value, na.rm = T),
             max = max(value, na.rm = T))
 
+# time spend in corners ---------------------------------------------------
+dall %>%
+  util$binal(hour = 13) %>%
+  group_by(tag, bin) %>%
+  summarise(value = sum(visitduration)) %>%
+  group_by(tag) %>%
+  summarise(value2 = median(value, na.rm = T)) %>%
+  summarise(median = median(value2, na.rm = T),
+            iqr25 = quantile(value2,na.rm = T)[[2]],
+            iqr75 = quantile(value2, na.rm = T)[[4]],
+            min = min(value2, na.rm = T),
+            max = max(value2, na.rm = T))
+
+dall %>%
+  util$binal(hour =13) %>%
+  group_by(tag, bin) %>%
+  summarise(value = sum(visitduration)) %>%
+  group_by(tag) %>%
+  summarise(value2 = median(value, na.rm = T)) %>%
+  left_join(manimal) %>%
+  group_by(gr) %>%
+  summarise(median = median(value2, na.rm = T),
+            iqr25 = quantile(value2,na.rm = T)[[2]],
+            iqr75 = quantile(value2, na.rm = T)[[4]],
+            min = min(value2, na.rm = T),
+            max = max(value2, na.rm = T))
+lubridate::dseconds(3640.310) 
+
 # substance preference ----------------------------------------------------
 util$getpreference() %>%
   left_join(manimal, by = "tag") %>%
@@ -40,6 +68,12 @@ util$getpreference() %>%
 #   summarise(n = length(which(value < 0.5)),
 #             total = n()) %>% View()
 
+util$getpreference() %>%
+  left_join(manimal) %>%
+  group_by(substance) %>%
+  summarise(below = length(which(value < .5)),
+            all = n())
+
 # better ratio ------------------------------------------------------------
 util$betterratio(dall) %>%
   left_join(manimal, by = "tag") %>%
@@ -50,20 +84,21 @@ util$betterratio(dall) %>%
 
 # visits while dark -------------------------------------------------------
 dall %>%
+  filter(rp > 0) %>%
   filter(info %in% "reversal") %>%
   left_join(manimal) %>%
+  util$assign_cohort() %>%
   arrange(start) %>%
-  mutate(cohort = gg$cohort$label[match(exp, gg$cohort$exp)],
-         gr = paste(substance, cohort, sep = " ")) %>%
-  group_by(gr) %>%
+  group_by(substance) %>%
   util$binal(allow.group = T) %>%
   ungroup() %>%
   filter(lubridate::hour(start) %in% c(0:6, 20:24)) %>%
-  group_by(gr, corner, bin) %>%
+  group_by(substance, corner, bin) %>%
   summarise(sumvisit = sum(visitduration, na.rm = T),
-            measure = (sumvisit / (24 * 60 * 60)) * 100) %>% View()
-  summarise(min = min(measure), max = max(measure)) %>% View()
-  
+            measure = (sumvisit / (24 * 60 * 60)) * 100) %>% 
+  summarise(min = min(measure), median=median(measure), 
+            max = max(measure)) %>% View()
+
 # parameters --------------------------------------------------------------
   util$plotpar("dual","par.alpha.pos",a = remodel) + 
     util$plotpar("dual","par.alpha.neg",a = remodel)

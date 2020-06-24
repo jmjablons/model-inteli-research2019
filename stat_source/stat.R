@@ -42,14 +42,25 @@ temp <- util$betterratio(dall) %>%
 # model parameters
 temp <- util$get("fictitious","par.beta", "saccharin")
 
-temp <- pubmodel[["basic"]] %>%
+temp <- remodel[["basic"]] %>%
+  select(value = par.beta, tag) %>%
+  left_join(manimal, by = "tag") %>%
+  mutate(substance = as.factor(substance))
+
+temp <- remodel[["basic"]] %>%
   select(value = par.alpha, tag) %>%
   left_join(manimal, by = "tag") %>%
   mutate(substance = as.factor(substance))
 
-temp <- pubmodel[["fictitious"]] %>%
-  select(value = par.alpha, tag) %>%
-  left_join(manimal, by = "tag") %>%
+# odds ratio
+#"door"
+#"intervala"
+#"corner"
+temp <- result$glm %>%
+  filter(grepl("intervala", predictor, ignore.case = T)) %>%
+  filter(sig == 1) %>%
+  select(value = estimate, tag) %>%
+  left_join(manimal) %>%
   mutate(substance = as.factor(substance))
 
 # stat --------------------------------------------------------------------
