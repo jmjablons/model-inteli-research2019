@@ -33,15 +33,14 @@ remodel %>%
 remodel %>%
   purrr::map(~select(., tag, aic, name)) %>%
   dplyr::bind_rows() %>%
-  filter(name %in% c(temp_names$name, "basic")) %>%
-  group_by(tag, name) %>%
-  arrange(aic, .by_group = T) %>%
-  summarise(value = head(aic)[1]) %>%
-  arrange(value, .by_group = T) %>%
+  group_by(tag) %>%
+  arrange(aic, .by_group = T) %>% 
   slice(1:2, .preserve = T) %>%
+  mutate(id = row_number()) %>%
+  select(-name) %>%
+  tidyr::spread(id, aic) %>%
   summarise(
-    what = paste0(unique(name), collapse = " - "),
-    dif = value[1] - value[2]) %>%
+    dif = `2` - `1`) %>%
   left_join(manimal %>% select(tag, substance)) %>%
   group_by(substance) %>%
   summarise(median(dif))  
@@ -72,3 +71,5 @@ remodel %>%
 #   summarise(median = round(median(value*100), 5), 
 #             rst = round(quantile(value*100),5)[2],
 #             rth = round(quantile(value*100),5)[4])
+
+temp <- function(q, e){q + e * (0.5 - q)}

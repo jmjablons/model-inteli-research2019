@@ -48,6 +48,7 @@ util_wrap <- function(name, ...){
 # variables ---------------------------------------------------------------
 init <- list(default = c(0.05, 0.15, 0.35, 0.55, 0.75, 0.95),
              primitive = c(0.05, 0.15, 0.35, 0.55, 0.75, 0.95),
+             totwo = c(0.05, 0.35, 0.75, 1, 1.25, 1.35, 2),
              beta = seq(0.25, 5, by = 1))
 
 remodel <- list()
@@ -218,7 +219,7 @@ model <- function(par, a) {
   nll = 0
   if (par[1] < 0 | par[1] > 1 |
       par[2] < 0 | par[2] > 50 |
-      par[3] < 0 | par[3] > 1) {
+      par[3] < 0 | par[3] > 2) {
     nll = Inf
   } else {
     Q = c(0, 0)
@@ -243,7 +244,7 @@ print("forgetful")
 remodel[["forgetful"]] <- util_wrap("forgetful",
                                      alpha = init$default,
                                      beta = init$beta,
-                                     epsilon = init$default)
+                                     epsilon = init$totwo)
 saveRDS(remodel, 'result/remodel.rds')
 
 #  TIME-DEPENDENT ---------------------------------------------------------
