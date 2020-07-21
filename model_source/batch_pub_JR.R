@@ -1,4 +1,4 @@
-setwd('~/phDCompute/let_model_go/')
+# setwd('~/phDCompute/let_model_go/')
 
 # dependency --------------------------------------------------------------
 library(dplyr)
@@ -54,8 +54,8 @@ init <- list(default = c(0.05, 0.15, 0.35, 0.55, 0.75, 0.95),
 remodel <- list()
 
 # read dataset ------------------------------------------------------------
-rm(dmodel)
-dmodel <- readRDS('data/dmodel_publikacja.rds')
+# rm(dmodel)
+# dmodel <- readRDS('data/dmodel_publikacja.rds')
 
 # model -------------------------------------------------------------------
 # basic -------------------------------------------------------------------
@@ -164,13 +164,20 @@ model <- function(par, a) {
       r = rewards[i]
       s = sides[i]
       P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+      # if(!(is.finite(P[s]))){print(paste(i, P, Q))}
+      # print(paste(i, P, Q))
       if(P[s] < .001){P[s] = .001}
       if(P[s] > .999){P[s] = .999}
       nll = -log(P[s]) + nll
       pe = r - Q[s]
       Q[s] = Q[s] + (par[1] * pe)
-      pe = (1-r) - Q[-s]
-      Q[-s] = Q[-s] + (par[1] * pe)}}
+      Q[-s] = Q[-s] - (par[1] * (r - Q[-s]))
+      if(Q[s] < -2){Q[s] = -2}   #####bez zakneblowania Q obliczenia wywracaja sie
+      if(Q[s] > 2){Q[s] = 2}
+      if(Q[-s] < -2){Q[-s] = -2}
+      if(Q[-s] > 2){Q[-s] = 2}
+      }
+    }   ####ficitious poprawiony przez JR
   nll}
 
 print("fictitious")
@@ -199,16 +206,19 @@ model <- function(par, a) {
       if(P[s] < .001){P[s] = .001}
       if(P[s] > .999){P[s] = .999}
       nll = -log(P[s]) + nll
+      pe = r - Q[s]
       if (r == 1) {
-        pe = r - Q[s]
         Q[s] = Q[s] + (par[1] * pe)
-        pe = (1-r) - Q[-s]
-        Q[-s] = Q[-s] + (par[1] * pe)
+        Q[-s] = Q[-s] - (par[1] * (r - Q[-s]))   ####poprawka JR
       } else {
-        pe = r - Q[s]
         Q[s] = Q[s] + (par[3] * pe)
-        pe = (1-r) - Q[-s]
-        Q[-s] = Q[-s] + (par[3] * pe)}}}
+        Q[-s] = Q[-s] - (par[3] * (r - Q[-s]))}
+      if(Q[s] < -2){Q[s] = -2}   #####bez zakneblowania Q obliczenia wywracaja sie
+      if(Q[s] > 2){Q[s] = 2}
+      if(Q[-s] < -2){Q[-s] = -2}
+      if(Q[-s] > 2){Q[-s] = 2}
+      }
+    }  ####poprawka JR
   nll}
 
 print("hybrid")
@@ -241,7 +251,6 @@ model <- function(par, a) {
       Q[s] = Q[s] + par[1] * pe
       delta = 0.5 - Q[s]
       Q[s] = Q[s] + par[3] * delta
-      delta = 0.5 - Q[-s]
       Q[-s] = Q[-s] + par[3] * delta}}
   nll}
 
@@ -280,6 +289,7 @@ model <- function(par, a) {
       t = ifelse(t > 660, 660, t)
       Q = exp( -(t) * par[3] ) * Q
       P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+      if(!(is.finite(P[s]))){print(paste(now.start, i, P, Q))}
       if(P[s] < .001){P[s] = .001}
       if(P[s] > .999){P[s] = .999}
       nll = -log(P[s]) + nll
@@ -294,51 +304,60 @@ remodel[["q-decay"]] <- util_wrap("q-decay",
                                    storage = init$default)
 saveRDS(remodel, 'result/remodel.rds')
 
-# # # q-decay split -----------------------------------------------------------
-# # model <- function(par, a) {
-# #   a = a[with(a, order(start)), ]
-# #   nll = 0
-# #   if (par[1] < 0 | par[1] > 1 |
-# #       par[2] < 0 | par[2] > 50 | 
-# #       par[3] < 0 | par[3] > 1 |
-# #       par[4] < 0 | par[4] > 1) {
-# #     nll = Inf
-# #   } else {
-# #     Q = c(0, 0)
-# #     t = c(0, 0)
-# #     P <- vector()
-# #     rewards = a$dooropened
-# #     sides = ceiling(a$corner/2)
-# #     nows.start = a$start
-# #     nows.end = a$end
-# #     intervals = a$intervalb
-# #     intervals[1] = 0
-# #     rew = c(0,0)
-# #     for (i in seq_along(sides)) {
-# #       r = rewards[i]
-# #       s = sides[i]
-# #       now.start = nows.start[i]
-# #       now.end = nows.end[i]
-# #       t = intervals[i]
-# #       t = ifelse(t > 660, 660, t)
-# #       decay = ifelse(rew == 1, par[3], par[4])
-# #       rew[s] = r
-# #       Q = exp( -(t) * decay ) * Q
-# #       P = exp(par[2] * Q) / sum(exp(par[2] * Q))
-# #       if(P[s] < .001){P[s] = .001}
-# #       if(P[s] > .999){P[s] = .999}
-# #       nll = -log(P[s]) + nll
-# #       pe = r - Q[s]
-# #       Q[s] = Q[s] + (par[1] * pe)}}
-# #   nll}
-# # 
-# # print("q-decay+")
-# # remodel[["q-decay+"]] <- util_wrap("q-decay+",
-# #                                     alpha = init$default,
-# #                                     beta = init$beta,
-# #                                     storage.pos = init$default,
-# #                                     storage.neg = init$default)
-# # saveRDS(remodel, 'result/remodel.rds')
+# q-decay split -----------------------------------------------------------
+# zmieniony przez JR
+model <- function(par, a) {
+  a = a[with(a, order(start)), ]
+  nll = 0
+  if (par[1] < 0 | par[1] > 1 |
+      par[2] < 0 | par[2] > 50 |
+      par[3] < 0 | par[3] > 1 |
+      par[4] < 0 | par[4] > 1) {
+    nll = Inf
+  } else {
+    Q = c(0, 0)
+    t = c(0, 0)
+    P <- vector()
+    rewards = a$dooropened
+    sides = ceiling(a$corner/2)
+    nows.start = a$start
+    nows.end = a$end
+    intervals = a$intervalb
+    intervals[1] = 0
+    for (i in seq_along(sides)) {
+      r = rewards[i]
+      s = sides[i]
+      now.start = nows.start[i]
+      now.end = nows.end[i]
+      t = intervals[i]
+      t = ifelse(t > 660, 660, t)
+      Q = exp( -(t) * par[4] ) * Q
+      P = exp(par[2] * Q) / sum(exp(par[2] * Q))
+      if(P[s] < .001){P[s] = .001}
+      if(P[s] > .999){P[s] = .999}
+      nll = -log(P[s]) + nll
+      pe = r - Q[s]
+      if (r == 1) {
+        Q[s] = Q[s] + (par[1] * pe)
+        Q[-s] = Q[-s] - (par[1] * (r - Q[-s]))   ####poprawka JR
+      } else {
+        Q[s] = Q[s] + (par[3] * pe)
+        Q[-s] = Q[-s] - (par[3] * (r - Q[-s]))}
+      if(Q[s] < -2){Q[s] = -2}   #####bez zakneblowania Q obliczenia wywracaja sie
+      if(Q[s] > 2){Q[s] = 2}
+      if(Q[-s] < -2){Q[-s] = -2}
+      if(Q[-s] > 2){Q[-s] = 2}
+    }
+  }  ####poprawka JR
+  nll}
+
+print("q-decay+")
+remodel[["q-decay+"]] <- util_wrap("q-decay+",
+                                   alpha.pos = init$default,
+                                   beta = init$beta,
+                                   alpha.neg = init$default,
+                                   storage = init$default)
+saveRDS(remodel, 'result/remodel.rds')
 # 
 # q-decay fictitious ------------------------------------------------------
 model <- function(par, a) {
@@ -372,8 +391,13 @@ model <- function(par, a) {
       nll = -log(P[s]) + nll
       pe = r - Q[s]
       Q[s] = Q[s] + (par[1] * pe)
-      pe = (1-r) - Q[-s]
-      Q[-s] = Q[-s] + (par[1] * pe)}}
+      Q[-s] = Q[-s] - (par[1] * (r - Q[-s]))
+      if(Q[s] < -2){Q[s] = -2}   #####bez zakneblowania Q obliczenia wywracaja sie
+      if(Q[s] > 2){Q[s] = 2}
+      if(Q[-s] < -2){Q[-s] = -2}
+      if(Q[-s] > 2){Q[-s] = 2}
+      }
+    }  ####poprawka JR
   nll}
 
 print("q-decay*")
@@ -579,10 +603,15 @@ model <- function(par, a) {
       if(P[s] < .001){P[s] = .001}
       if(P[s] > .999){P[s] = .999}
       nll = -log(P[s]) + nll
-      pe = (1-r) - Q[s]
+      pe = r - Q[s]
       Q[s] = Q[s] + (par[1] * pe)
-      pe = (1-r) - Q[-s]
-      Q[-s] = Q[-s] + (par[1] * pe)}}
+      Q[-s] = Q[-s] - (par[1] * (r - Q[-s]))
+      if(Q[s] < -2){Q[s] = -2}   #####bez zakneblowania Q obliczenia wywracaja sie
+      if(Q[s] > 2){Q[s] = 2}
+      if(Q[-s] < -2){Q[-s] = -2}
+      if(Q[-s] > 2){Q[-s] = 2}
+      }
+    }  ####poprawka JR
   nll}
 
 print("b-decay*")
@@ -643,7 +672,7 @@ remodel[["random"]] <- dmodel %>%
   summarise(n = length(corner)) %>%
   mutate(name = "random", aic = getaic(0, n * -log(0.5)))
 saveRDS(remodel, 'result/remodel.rds')
-
+  
 # save results ------------------------------------------------------------
 print("done: publikacja")
 saveRDS(remodel, 'result/remodel.rds')
