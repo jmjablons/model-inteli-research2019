@@ -169,7 +169,8 @@ model <- function(par, a) {
       nll = -log(P[s]) + nll
       pe = r - Q[s]
       Q[s] = Q[s] + (par[1] * pe)
-      Q[-s] = Q[-s] - (par[1] * pe)}}
+      pe = (1-r) - Q[-s]
+      Q[-s] = Q[-s] + (par[1] * pe)}}
   nll}
 
 print("fictitious")
@@ -198,13 +199,16 @@ model <- function(par, a) {
       if(P[s] < .001){P[s] = .001}
       if(P[s] > .999){P[s] = .999}
       nll = -log(P[s]) + nll
-      pe = r - Q[s]
       if (r == 1) {
+        pe = r - Q[s]
         Q[s] = Q[s] + (par[1] * pe)
-        Q[-s] = Q[-s] - (par[1] * pe)
+        pe = (1-r) - Q[-s]
+        Q[-s] = Q[-s] + (par[1] * pe)
       } else {
+        pe = r - Q[s]
         Q[s] = Q[s] + (par[3] * pe)
-        Q[-s] = Q[-s] - (par[3] * pe)}}}
+        pe = (1-r) - Q[-s]
+        Q[-s] = Q[-s] + (par[3] * pe)}}}
   nll}
 
 print("hybrid")
@@ -237,6 +241,7 @@ model <- function(par, a) {
       Q[s] = Q[s] + par[1] * pe
       delta = 0.5 - Q[s]
       Q[s] = Q[s] + par[3] * delta
+      delta = 0.5 - Q[-s]
       Q[-s] = Q[-s] + par[3] * delta}}
   nll}
 
@@ -367,7 +372,8 @@ model <- function(par, a) {
       nll = -log(P[s]) + nll
       pe = r - Q[s]
       Q[s] = Q[s] + (par[1] * pe)
-      Q[-s] = Q[-s] - (par[1] * pe)}}
+      pe = (1-r) - Q[-s]
+      Q[-s] = Q[-s] + (par[1] * pe)}}
   nll}
 
 print("q-decay*")
@@ -573,9 +579,10 @@ model <- function(par, a) {
       if(P[s] < .001){P[s] = .001}
       if(P[s] > .999){P[s] = .999}
       nll = -log(P[s]) + nll
-      pe = r - Q[s]
+      pe = (1-r) - Q[s]
       Q[s] = Q[s] + (par[1] * pe)
-      Q[-s] = Q[-s] - (par[1] * pe)}}
+      pe = (1-r) - Q[-s]
+      Q[-s] = Q[-s] + (par[1] * pe)}}
   nll}
 
 print("b-decay*")
