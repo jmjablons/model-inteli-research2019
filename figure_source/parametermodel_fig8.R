@@ -23,3 +23,5 @@ remodel[["fictitious"]] %>%
   left_join(manimal) %>%
   select("par.beta", substance) %>%
   filter(par.beta > 12)
+
+remodel[["q-decay+"]]

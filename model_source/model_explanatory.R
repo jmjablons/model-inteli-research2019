@@ -73,3 +73,34 @@ remodel %>%
 #             rth = round(quantile(value*100),5)[4])
 
 temp <- function(q, e){q + e * (0.5 - q)}
+
+# delta aic two model -----------------------------------------------------
+remodel[c(4, 12)] %>%
+  purrr::map(~select(., tag, aic, name)) %>%
+  dplyr::bind_rows() %>%
+  group_by(tag) %>%
+  arrange(aic, .by_group = T) %>% 
+  mutate(id = row_number()) %>%
+  select(-name) %>%
+  tidyr::spread(id, aic) %>%
+  summarise(
+    dif = `2` - `1`) %>%
+  left_join(manimal %>% select(tag, substance)) %>%
+  group_by(substance) %>%
+  summarise(median(dif)) 
+
+remodel[c(4, 12)] %>% #hybrid, q-decay+
+  purrr::map(~select(., tag, aic, name)) %>%
+  dplyr::bind_rows() %>%
+  group_by(tag) %>%
+  arrange(desc(name), .by_group = T) %>% 
+  mutate(id = row_number()) %>%
+  select(-name) %>%
+  tidyr::spread(id, aic) %>%
+  summarise(
+    dif = `2` - `1`) %>%
+  left_join(manimal %>% select(tag, substance)) %>%
+  group_by(substance) %>%
+  summarise(median(dif), quantile(dif, .25), quantile(dif, .75)) %>%
+  xlsx::write.xlsx(temp, "./delta_aic_hybridxq-decayfictitious.xls")
+
