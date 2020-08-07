@@ -579,7 +579,7 @@ model <- function(par, a) {
       if(P[s] < .001){P[s] = .001}
       if(P[s] > .999){P[s] = .999}
       nll = -log(P[s]) + nll
-      pe = (1-r) - Q[s]
+      pe = r - Q[s]
       Q[s] = Q[s] + (par[1] * pe)
       pe = (1-r) - Q[-s]
       Q[-s] = Q[-s] + (par[1] * pe)}}
