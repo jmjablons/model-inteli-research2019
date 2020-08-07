@@ -110,6 +110,18 @@ util$aictidy <- function(a = rmodel){
       (dmodel %>% group_by(tag) %>% summarise(ntrial = n())), 
       by = "tag")}
 
+util$aictidy2 <-function(a = remodel) {a %>% 
+    purrr::map(~select(., name, aic, tag)) %>%
+    bind_rows() %>%
+    group_by(tag) %>%
+    dplyr::group_split(.keep = TRUE) %>%
+    purrr::map(~ mutate(., delta = .$aic - .$aic[.$name %in% "basic"]))%>%
+    dplyr::bind_rows() %>%
+    left_join(manimal) %>%
+    left_join(
+      (dmodel %>% group_by(tag) %>% summarise(ntrial = n())), 
+      by = "tag")}
+
 util$waic <- function(a = pubmodel){
   a %>% purrr::map(~select(., name, aic, tag)) %>%
     bind_rows() %>%
