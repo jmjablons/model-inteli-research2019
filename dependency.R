@@ -11,6 +11,7 @@ library(latex2exp)
 #spot
 #library(boot)
 #library(metR)
+#library(FSA)
 
 #eventually
 #library(plotly)
